@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+web/.env.local
+scripts/deploy/.env.local
+web/.next/
+coverage/
+*.log
+tests/*.js

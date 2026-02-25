@@ -1,0 +1,1 @@
+REFRESH MATERIALIZED VIEW stock_balances_mv;
