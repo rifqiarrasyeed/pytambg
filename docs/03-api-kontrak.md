@@ -116,6 +116,7 @@ Response:
 ### Audit, Reports, Locks
 - `GET /audit-logs`
 - `GET /reports/kpi`
+- `GET /reports/kpi-trend`
 - `POST /reports/export`
 - `GET /reports/jobs`
 - `GET /reports/jobs/:id`

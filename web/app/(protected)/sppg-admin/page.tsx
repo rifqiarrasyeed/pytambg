@@ -1,6 +1,10 @@
 "use client";
 
+import { Building2, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 
 type SppgRow = {
@@ -156,13 +160,25 @@ export default function SppgAdminPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Admin Pusat SPPG"
+        subtitle="Kelola tenant SPPG dan assignment user lintas role secara terkontrol."
+        icon={Building2}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => loadAll()} disabled={busy}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Admin Pusat SPPG</strong>
-          <button className="btn btn-secondary" onClick={() => loadAll()} disabled={busy}>Refresh</button>
         </div>
         <div className="card-body" style={{ display: "grid", gap: 12 }}>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
           <div className="grid-3">
             <label>Kode<input className="input" value={sppgForm.code} onChange={(e) => setSppgForm({ ...sppgForm, code: e.target.value })} disabled={Boolean(sppgForm.id)} /></label>
             <label>Nama<input className="input" value={sppgForm.name} onChange={(e) => setSppgForm({ ...sppgForm, name: e.target.value })} /></label>
@@ -195,7 +211,7 @@ export default function SppgAdminPage() {
                     <button className="btn btn-secondary" onClick={() => setSppgForm({ id: row.id, code: row.code, name: row.name, status: row.status, timezone: row.timezone, settings_json: JSON.stringify(row.config ?? {}, null, 2) })}>Edit</button>
                     <button className={selectedSppgId === row.id ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setSelectedSppgId(row.id)}>Pilih</button>
                   </td>
-                  <td>{row.code}</td><td>{row.name}</td><td>{row.status}</td><td>{row.config_version ?? "-"}</td>
+                  <td>{row.code}</td><td>{row.name}</td><td><StatusBadge value={row.status} /></td><td>{row.config_version ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -242,7 +258,7 @@ export default function SppgAdminPage() {
               <tbody>
                 {assignments.map((row) => (
                   <tr key={row.id}>
-                    <td>{row.full_name}</td><td>{row.email}</td><td>{row.role_scope.join(", ")}</td><td>{row.is_default ? "YA" : "TIDAK"}</td><td>{row.status}</td>
+                    <td>{row.full_name}</td><td>{row.email}</td><td>{row.role_scope.join(", ")}</td><td>{row.is_default ? "YA" : "TIDAK"}</td><td><StatusBadge value={row.status} /></td>
                   </tr>
                 ))}
               </tbody>

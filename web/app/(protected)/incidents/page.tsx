@@ -1,7 +1,11 @@
 "use client";
 
+import { RefreshCw, Siren } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AttachmentUploader } from "@/components/attachment-uploader";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { SeverityBadge, StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
 import type { PaginatedResponse } from "@/lib/contracts";
@@ -164,6 +168,20 @@ export default function IncidentsPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Incident, Waste & Recall"
+        subtitle="Catat kejadian kritikal, bukti lapangan, dan telusur recall batch."
+        icon={Siren}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Waste Event</strong>
@@ -285,16 +303,12 @@ export default function IncidentsPage() {
             </button>
           </div>
           {recallResult ? <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{JSON.stringify(recallResult, null, 2)}</pre> : null}
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </div>
       </section>
 
       <section className="card">
         <div className="card-header">
           <strong>Waste & Incident History</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Refresh
-          </button>
         </div>
         <div className="card-body grid-2">
           <div className="table-wrap">
@@ -313,7 +327,7 @@ export default function IncidentsPage() {
                     <td>{new Date(row.event_time).toLocaleString("id-ID")}</td>
                     <td>{row.item_id ? itemNameById.get(row.item_id) ?? row.item_id : "-"}</td>
                     <td>{row.qty}</td>
-                    <td>{row.status}</td>
+                    <td><StatusBadge value={row.status} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -334,8 +348,8 @@ export default function IncidentsPage() {
                   <tr key={row.id}>
                     <td>{new Date(row.incident_time).toLocaleString("id-ID")}</td>
                     <td>{row.category}</td>
-                    <td>{row.severity}</td>
-                    <td>{row.status}</td>
+                    <td><SeverityBadge value={row.severity} /></td>
+                    <td><StatusBadge value={row.status} /></td>
                   </tr>
                 ))}
               </tbody>

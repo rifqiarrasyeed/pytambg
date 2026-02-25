@@ -1,6 +1,10 @@
 "use client";
 
+import { BarChart3, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient } from "@/lib/api-client";
 
 type Kpi = {
@@ -84,6 +88,20 @@ export default function ReportsPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Reports & Export Jobs"
+        subtitle="Pantau KPI harian dan job export audit/report dengan signed URL attachment."
+        icon={BarChart3}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>KPI</strong>
@@ -155,22 +173,18 @@ export default function ReportsPage() {
               Download Last Signed URL
             </a>
           ) : null}
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
       <section className="card">
         <div className="card-header">
           <strong>Jobs</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Refresh
-          </button>
         </div>
         <div className="card-body table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>Job</th>
                 <th>Type</th>
                 <th>Status</th>
                 <th>Attachment</th>
@@ -180,10 +194,14 @@ export default function ReportsPage() {
             <tbody>
               {jobs.map((job) => (
                 <tr key={job.id}>
-                  <td>{job.id}</td>
+                  <td>
+                    {job.id.slice(0, 8)}
+                    <br />
+                    <small>{new Date(job.created_at).toLocaleString("id-ID")}</small>
+                  </td>
                   <td>{job.report_type}</td>
                   <td>
-                    <span className="badge badge-neutral">{job.status}</span>
+                    <StatusBadge value={job.status} />
                   </td>
                   <td>
                     {job.result_attachment_id ? (

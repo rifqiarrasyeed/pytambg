@@ -1,6 +1,10 @@
 "use client";
 
+import { Database, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { LookupMasterResponse } from "@/lib/contracts";
 
@@ -291,15 +295,26 @@ export default function MasterDataPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Master Data Operasional"
+        subtitle="Kelola sekolah, rute, vendor, item, resep, dan mapping verifikasi lintas SPPG."
+        icon={Database}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => loadAll()} disabled={busy}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <div>
             <strong>Master Data Operasional</strong>
             <div style={{ color: "var(--muted)", fontSize: 12 }}>Kelola sekolah, rute, vendor, item, recipe, dan mapping.</div>
           </div>
-          <button className="btn btn-secondary" onClick={() => loadAll()} disabled={busy}>
-            Refresh
-          </button>
         </div>
         <div className="card-body">
           <div className="action-row" style={{ flexWrap: "wrap" }}>
@@ -309,7 +324,6 @@ export default function MasterDataPage() {
               </button>
             ))}
           </div>
-          {error ? <div className="badge badge-danger" style={{ marginTop: 12 }}>{error}</div> : null}
         </div>
       </section>
 
@@ -373,7 +387,7 @@ export default function MasterDataPage() {
                       <td><button className="btn btn-secondary" onClick={() => setRouteForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
-                      <td><span className={row.status === "ACTIVE" ? "badge badge-ok" : "badge badge-neutral"}>{row.status}</span></td>
+                      <td><StatusBadge value={row.status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -410,7 +424,7 @@ export default function MasterDataPage() {
                       <td><button className="btn btn-secondary" onClick={() => setVendorForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
-                      <td><span className={row.status === "ACTIVE" ? "badge badge-ok" : "badge badge-neutral"}>{row.status}</span></td>
+                      <td><StatusBadge value={row.status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -517,7 +531,7 @@ export default function MasterDataPage() {
                       <td><button className="btn btn-secondary" onClick={() => setRecipeForm({ id: row.id, code: row.code, name: row.name, yield_portions: Number(row.yield_portions), status: row.status, items: row.items?.length ? row.items : [emptyRecipeItem()] })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
-                      <td><span className={row.status === "APPROVED" ? "badge badge-ok" : "badge badge-neutral"}>{row.status}</span></td>
+                      <td><StatusBadge value={row.status} /></td>
                       <td>{(row.items ?? []).map((it) => itemLabelById.get(it.item_id) ?? it.item_id).join(", ") || "-"}</td>
                     </tr>
                   ))}

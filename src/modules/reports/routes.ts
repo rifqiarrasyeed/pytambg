@@ -7,6 +7,7 @@ import { PERMISSIONS } from "../../types";
 import { notFound, unprocessable } from "../../utils/api-error";
 import { buildPagingMeta, parseListQuery } from "../../utils/pagination";
 import { resolveOrderBy } from "../../utils/sorting";
+import { resolveKpiTrendRange } from "./kpi-trend";
 
 const kpiSchema = z.object({
   date: z.string().date().optional(),
@@ -97,6 +98,105 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
         delivered_rate: planned > 0 ? delivered / planned : 0,
         verified_rate: planned > 0 ? verified / planned : 0,
         waste_rate: produced > 0 ? wasteQty / produced : 0
+      });
+    }
+  );
+
+  app.get(
+    "/reports/kpi-trend",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      requirePermission(request, PERMISSIONS.REPORT_VIEW);
+      const sppgId = requireActiveSppg(request);
+      const params = resolveKpiTrendRange(request.query);
+
+      const trend = await query<{
+        date: string;
+        planned: string;
+        produced: string;
+        delivered: string;
+        verified: string;
+        waste_rate: string;
+      }>(
+        `
+          WITH days AS (
+            SELECT generate_series($2::date, $3::date, '1 day'::interval)::date AS date
+          ),
+          planned AS (
+            SELECT mp.plan_date::date AS date, COALESCE(SUM(pi.target_portions), 0) AS qty
+            FROM menu_plans mp
+            JOIN plan_items pi ON pi.menu_plan_id = mp.id AND pi.sppg_id = mp.sppg_id
+            WHERE mp.sppg_id = $1
+              AND mp.plan_date BETWEEN $2::date AND $3::date
+            GROUP BY mp.plan_date
+          ),
+          produced AS (
+            SELECT pr.run_date::date AS date, COALESCE(SUM(po.output_portions), 0) AS qty
+            FROM production_runs pr
+            JOIN production_outputs po ON po.production_run_id = pr.id AND po.sppg_id = pr.sppg_id
+            WHERE pr.sppg_id = $1
+              AND pr.run_date BETWEEN $2::date AND $3::date
+            GROUP BY pr.run_date
+          ),
+          delivered AS (
+            SELECT d.planned_departure::date AS date, COALESCE(SUM(di.delivered_portions), 0) AS qty
+            FROM deliveries d
+            JOIN delivery_stops ds ON ds.delivery_id = d.id AND ds.sppg_id = d.sppg_id
+            JOIN delivery_items di ON di.delivery_stop_id = ds.id AND di.sppg_id = d.sppg_id
+            WHERE d.sppg_id = $1
+              AND d.planned_departure::date BETWEEN $2::date AND $3::date
+            GROUP BY d.planned_departure::date
+          ),
+          verified AS (
+            SELECT d.planned_departure::date AS date, COALESCE(SUM(di.delivered_portions), 0) AS qty
+            FROM deliveries d
+            JOIN delivery_stops ds ON ds.delivery_id = d.id AND ds.sppg_id = d.sppg_id
+            JOIN delivery_items di ON di.delivery_stop_id = ds.id AND di.sppg_id = d.sppg_id
+            WHERE d.sppg_id = $1
+              AND d.planned_departure::date BETWEEN $2::date AND $3::date
+              AND ds.status IN ('VERIFIED','LOCKED')
+            GROUP BY d.planned_departure::date
+          ),
+          waste AS (
+            SELECT event_time::date AS date, COALESCE(SUM(ABS(qty)), 0) AS qty
+            FROM waste_events
+            WHERE sppg_id = $1
+              AND event_time::date BETWEEN $2::date AND $3::date
+            GROUP BY event_time::date
+          )
+          SELECT
+            d.date::text AS date,
+            COALESCE(p.qty, 0)::text AS planned,
+            COALESCE(pr.qty, 0)::text AS produced,
+            COALESCE(dl.qty, 0)::text AS delivered,
+            COALESCE(v.qty, 0)::text AS verified,
+            CASE WHEN COALESCE(pr.qty, 0) > 0
+              THEN (COALESCE(w.qty, 0)::numeric / pr.qty::numeric)
+              ELSE 0::numeric
+            END::text AS waste_rate
+          FROM days d
+          LEFT JOIN planned p ON p.date = d.date
+          LEFT JOIN produced pr ON pr.date = d.date
+          LEFT JOIN delivered dl ON dl.date = d.date
+          LEFT JOIN verified v ON v.date = d.date
+          LEFT JOIN waste w ON w.date = d.date
+          ORDER BY d.date ASC
+        `,
+        [sppgId, params.dateFrom, params.dateTo]
+      );
+
+      return reply.send({
+        date_from: params.dateFrom,
+        date_to: params.dateTo,
+        granularity: params.granularity,
+        series: trend.rows.map((row) => ({
+          date: row.date,
+          planned: Number(row.planned),
+          produced: Number(row.produced),
+          delivered: Number(row.delivered),
+          verified: Number(row.verified),
+          waste_rate: Number(row.waste_rate)
+        }))
       });
     }
   );

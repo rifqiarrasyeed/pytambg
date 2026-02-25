@@ -1,6 +1,10 @@
 "use client";
 
+import { CalendarRange, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
 import { fetchMasterLookups } from "@/lib/lookups";
@@ -105,15 +109,31 @@ export default function PlanningPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Menu Planning & MRP"
+        subtitle="Flow: buat plan, submit, lalu approve untuk lanjut ke procurement."
+        icon={CalendarRange}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+        chips={
+          <span className="status-badge status-neutral">
+            Selected: {selectedPlan ? `${selectedPlan.plan_date} (${selectedPlan.status})` : "-"}
+          </span>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: 22 }}>Menu Planning & MRP</div>
-            <div style={{ color: "var(--muted)", fontSize: 13 }}>Flow: buat plan -&gt; submit -&gt; approve</div>
+            <strong>Buat / Ubah Plan</strong>
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>Gunakan lookup sekolah dan resep aktif tenant.</div>
           </div>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Refresh
-          </button>
         </div>
         <form className="card-body" onSubmit={createPlan} style={{ display: "grid", gap: 10 }}>
           <div className="grid-3">
@@ -169,11 +189,7 @@ export default function PlanningPage() {
             <button className="btn btn-secondary" type="button" disabled={busy || !selectedPlanId} onClick={() => runAction("approve")}>
               Approve Selected
             </button>
-            <span className="badge badge-neutral">
-              Selected: {selectedPlan ? `${selectedPlan.plan_date} (${selectedPlan.status})` : "-"}
-            </span>
           </div>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
@@ -207,7 +223,7 @@ export default function PlanningPage() {
                     </td>
                     <td>{row.plan_date}</td>
                     <td>
-                      <span className="badge badge-neutral">{row.status}</span>
+                      <StatusBadge value={row.status} />
                     </td>
                     <td>{row.buffer_pct}</td>
                     <td>{new Date(row.created_at).toLocaleString("id-ID")}</td>

@@ -1,6 +1,10 @@
 "use client";
 
+import { Boxes, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { PaginatedResponse } from "@/lib/contracts";
 
@@ -149,6 +153,25 @@ export default function InventoryPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Inventory & Opname"
+        subtitle="Ledger stok append-only, adjustment terkontrol, dan opname periodik."
+        icon={Boxes}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+        chips={
+          <span className="status-badge status-neutral">
+            Stock terpilih: {selectedStock ? `${selectedStock.item_name} (${selectedStock.on_hand_qty})` : "-"}
+          </span>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Stock Movement</strong>
@@ -236,7 +259,6 @@ export default function InventoryPage() {
               Approve Selected
             </button>
           </div>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
@@ -292,7 +314,7 @@ export default function InventoryPage() {
                     <td>{row.move_no}</td>
                     <td>{row.move_type}</td>
                     <td>{itemNameById.get(row.item_id) ?? row.item_id}</td>
-                    <td>{row.qty}</td>
+                    <td style={{ color: row.qty < 0 ? "var(--danger)" : "var(--success)", fontWeight: 700 }}>{row.qty}</td>
                   </tr>
                 ))}
               </tbody>

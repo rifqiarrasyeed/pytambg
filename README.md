@@ -49,6 +49,8 @@ Dokumentasi detail tersedia di folder `docs/`:
 - Endpoint admin pusat:
   - `GET /users`
   - `GET /sppg/:id/assignments`
+- Endpoint trend dashboard:
+  - `GET /reports/kpi-trend`
 
 ## Struktur Direktori
 - `src/` backend modules, guards, services

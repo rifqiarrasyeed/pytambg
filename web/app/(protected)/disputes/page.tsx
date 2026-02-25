@@ -1,7 +1,11 @@
 "use client";
 
+import { AlertOctagon, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AttachmentUploader } from "@/components/attachment-uploader";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
@@ -175,6 +179,20 @@ export default function DisputesPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Dispute Management"
+        subtitle="Kelola dispute mismatch dari sekolah, termasuk resolusi dan stock action."
+        icon={AlertOctagon}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Create Dispute</strong>
@@ -275,16 +293,12 @@ export default function DisputesPage() {
           <button className="btn btn-primary" type="submit" disabled={busy || !selectedDispute || !canManageDispute}>
             Resolve Selected
           </button>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
       <section className="card">
         <div className="card-header">
           <strong>Dispute Queue</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Refresh
-          </button>
         </div>
         <div className="card-body table-wrap">
           <table className="table">
@@ -311,7 +325,7 @@ export default function DisputesPage() {
                   <td>{schoolNameById.get(stopById.get(row.delivery_stop_id)?.school_id ?? "") ?? stopById.get(row.delivery_stop_id)?.school_id ?? row.delivery_stop_id}</td>
                   <td>{row.delta_portions}</td>
                   <td>
-                    <span className="badge badge-neutral">{row.status}</span>
+                    <StatusBadge value={row.status} />
                   </td>
                   <td>{row.reason}</td>
                   <td>{new Date(row.created_at).toLocaleString("id-ID")}</td>

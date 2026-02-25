@@ -19,7 +19,26 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(() => {
+  try {
+    const key = "mbg-theme";
+    const stored = window.localStorage.getItem(key);
+    const mode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    const resolved = mode === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : mode;
+    document.documentElement.setAttribute("data-theme", resolved);
+  } catch (_) {}
+})();
+`
+          }}
+        />
+      </head>
       <body className={`${bodyFont.variable} ${headingFont.variable}`}>{children}</body>
     </html>
   );

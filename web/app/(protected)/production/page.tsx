@@ -1,6 +1,10 @@
 "use client";
 
+import { Factory, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
 import { fetchMasterLookups } from "@/lib/lookups";
@@ -125,6 +129,21 @@ export default function ProductionPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Production Run"
+        subtitle="Jalankan start/finalize produksi dengan QC minimum dan output terverifikasi."
+        icon={Factory}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+        chips={<span className="status-badge status-neutral">Run terpilih: {selectedRun ? `${selectedRun.run_date} (${selectedRun.status})` : "-"}</span>}
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Production Run Harian</strong>
@@ -219,11 +238,7 @@ export default function ProductionPage() {
             <button className="btn btn-primary" type="button" onClick={() => runAction("finalize")} disabled={busy || !selectedRunId}>
               Finalize Selected
             </button>
-            <span className="badge badge-neutral">
-              Selected: {selectedRun ? `${selectedRun.run_date} (${selectedRun.status})` : "-"}
-            </span>
           </div>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </div>
       </section>
 
@@ -251,13 +266,13 @@ export default function ProductionPage() {
                     <button className="btn btn-secondary" onClick={() => setSelectedRunId(run.id)}>
                       Pilih
                     </button>
-                  </td>
-                  <td>{run.run_date}</td>
-                  <td>
-                    <span className="badge badge-neutral">{run.status}</span>
-                  </td>
-                  <td>{planDateById.get(run.menu_plan_id) ?? run.menu_plan_id}</td>
-                </tr>
+                    </td>
+                    <td>{run.run_date}</td>
+                    <td>
+                      <StatusBadge value={run.status} />
+                    </td>
+                    <td>{planDateById.get(run.menu_plan_id) ?? run.menu_plan_id}</td>
+                  </tr>
               ))}
             </tbody>
           </table>

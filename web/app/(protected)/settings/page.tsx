@@ -1,6 +1,9 @@
 "use client";
 
+import { RefreshCw, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
 import { apiClient } from "@/lib/api-client";
 
 type SettingsData = {
@@ -49,6 +52,21 @@ export default function SettingsPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="SPPG Settings"
+        subtitle="Kelola konfigurasi tenant dan versioning setting operasional."
+        icon={SlidersHorizontal}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Reload</span>
+          </button>
+        }
+        chips={<span className="status-badge status-neutral">Version: {data?.config_version ?? "-"}</span>}
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <div>
@@ -57,9 +75,6 @@ export default function SettingsPage() {
               Version: {data?.config_version ?? "-"} | Effective: {data?.effective_from ?? "-"}
             </div>
           </div>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Reload
-          </button>
         </div>
         <div className="card-body" style={{ display: "grid", gap: 10 }}>
           <textarea
@@ -74,7 +89,6 @@ export default function SettingsPage() {
               Simpan Versi Baru
             </button>
           </div>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </div>
       </section>
     </div>

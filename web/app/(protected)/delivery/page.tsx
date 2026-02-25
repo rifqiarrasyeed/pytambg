@@ -1,7 +1,11 @@
 "use client";
 
+import { RefreshCw, Truck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AttachmentUploader } from "@/components/attachment-uploader";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
@@ -233,6 +237,21 @@ export default function DeliveryPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Delivery & Chain of Custody"
+        subtitle="Kelola manifest, status distribusi, dan proof serah-terima per stop sekolah."
+        icon={Truck}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+        chips={<span className="status-badge status-neutral">Manifest terpilih: {selectedDelivery?.manifest_no ?? "-"}</span>}
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Delivery Manifest</strong>
@@ -349,7 +368,7 @@ export default function DeliveryPage() {
             <button className="btn btn-secondary" type="button" onClick={() => loadStops(selectedDeliveryId)} disabled={busy || !selectedDeliveryId}>
               Reload Stops
             </button>
-            <span className="badge badge-neutral">Manifest: {selectedDelivery?.manifest_no ?? "-"}</span>
+            <span className="status-badge status-neutral">Manifest: {selectedDelivery?.manifest_no ?? "-"}</span>
           </div>
 
           <form onSubmit={uploadProof} style={{ display: "grid", gap: 10 }}>
@@ -383,7 +402,6 @@ export default function DeliveryPage() {
               Submit Proof
             </button>
           </form>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </div>
       </section>
 
@@ -415,7 +433,7 @@ export default function DeliveryPage() {
                     </td>
                     <td>{row.manifest_no}</td>
                     <td>
-                      <span className="badge badge-neutral">{row.status}</span>
+                      <StatusBadge value={row.status} />
                     </td>
                     <td>{driverLabelById.get(row.driver_user_id) ?? row.driver_user_id}</td>
                   </tr>
@@ -446,7 +464,7 @@ export default function DeliveryPage() {
                     <td>#{stop.stop_order}</td>
                     <td>{schoolLabelById.get(stop.school_id) ?? stop.school_id}</td>
                     <td>
-                      <span className="badge badge-neutral">{stop.status}</span>
+                      <StatusBadge value={stop.status} />
                     </td>
                     <td>{stop.planned_portions}</td>
                     <td>{stop.delivered_portions}</td>

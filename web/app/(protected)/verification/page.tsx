@@ -1,7 +1,11 @@
 "use client";
 
+import { CheckCheck, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AttachmentUploader } from "@/components/attachment-uploader";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
@@ -113,6 +117,20 @@ export default function VerificationPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="School Verification"
+        subtitle="Verifikasi serah-terima oleh verifier sekolah. Mismatch wajib reason dan bukti."
+        icon={CheckCheck}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>School Verification</strong>
@@ -166,7 +184,6 @@ export default function VerificationPage() {
             Verify Selected Stop
           </button>
           {!canVerify ? <div className="badge badge-warn">Role aktif tidak memiliki izin verify</div> : null}
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
@@ -202,7 +219,7 @@ export default function VerificationPage() {
                   <td>#{stop.stop_order}</td>
                   <td>{schoolNameById.get(stop.school_id) ?? stop.school_id}</td>
                   <td>
-                    <span className="badge badge-neutral">{stop.status}</span>
+                    <StatusBadge value={stop.status} />
                   </td>
                   <td>{stop.planned_portions}</td>
                   <td>{stop.delivered_portions}</td>

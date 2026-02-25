@@ -1,5 +1,6 @@
 "use client";
 
+import { KeyRound, LogIn } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
@@ -41,8 +42,11 @@ export default function LoginPage() {
     >
       <section className="card" style={{ width: "100%", maxWidth: 420 }}>
         <div className="card-header">
-          <strong style={{ fontFamily: "var(--font-heading)", fontSize: 20 }}>MBG Ops Login</strong>
-          <span className="badge badge-neutral">SPPG</span>
+          <strong style={{ fontFamily: "var(--font-heading)", fontSize: 20, display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <LogIn size={18} />
+            MBG Ops Login
+          </strong>
+          <span className="status-badge status-neutral">SPPG</span>
         </div>
         <form className="card-body" onSubmit={submit} style={{ display: "grid", gap: 12 }}>
           <label>
@@ -59,8 +63,9 @@ export default function LoginPage() {
               required
             />
           </label>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
-          <button className="btn btn-primary" type="submit" disabled={loading}>
+          {error ? <div className="status-badge status-danger">{error}</div> : null}
+          <button className="btn btn-primary icon-btn" type="submit" disabled={loading}>
+            <KeyRound size={16} />
             {loading ? "Memproses..." : "Masuk"}
           </button>
         </form>

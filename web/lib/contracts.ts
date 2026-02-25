@@ -6,6 +6,16 @@ export type PaginatedResponse<T> = {
   has_next: boolean;
 };
 
+export type ThemeMode = "light" | "dark" | "system";
+
+export type NavItemMeta = {
+  href: string;
+  label: string;
+  permissionAny?: string[];
+  rolesAny?: string[];
+  section?: "operasional" | "master" | "kontrol";
+};
+
 export type LookupMasterResponse = {
   schools?: Array<{ id: string; code: string; name: string; sla_minutes: number }>;
   routes?: Array<{ id: string; code: string; name: string; status: string }>;
@@ -23,6 +33,22 @@ export type SessionContextResponse = {
   roles: string[];
   permissions: string[];
   is_super_admin: boolean;
+};
+
+export type KpiTrendPoint = {
+  date: string;
+  planned: number;
+  produced: number;
+  delivered: number;
+  verified: number;
+  waste_rate: number;
+};
+
+export type KpiTrendResponse = {
+  date_from: string;
+  date_to: string;
+  granularity: "day";
+  series: KpiTrendPoint[];
 };
 
 export type MeSppgAssignment = {

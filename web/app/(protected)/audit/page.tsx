@@ -1,6 +1,10 @@
 "use client";
 
+import { RefreshCw, ScrollText } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient } from "@/lib/api-client";
 
 type AuditRow = {
@@ -48,6 +52,21 @@ export default function AuditPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Audit Trail"
+        subtitle="Forensik perubahan data kritikal: actor, waktu, entity, dan diff old/new."
+        icon={ScrollText}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Filter</span>
+          </button>
+        }
+        chips={<span className="status-badge status-neutral">{rows.length} log entries</span>}
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Audit Trail</strong>
@@ -75,17 +94,12 @@ export default function AuditPage() {
               <input className="input" type="number" value={filters.limit} onChange={(e) => setFilters({ ...filters, limit: e.target.value })} />
             </label>
           </div>
-          <button className="btn btn-secondary" onClick={() => load()}>
-            Filter
-          </button>
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </div>
       </section>
 
       <section className="card">
         <div className="card-header">
           <strong>Log Entries</strong>
-          <span className="badge badge-neutral">{rows.length} rows</span>
         </div>
         <div className="card-body table-wrap">
           <table className="table">
@@ -107,7 +121,9 @@ export default function AuditPage() {
                     <br />
                     <small>{row.entity_id}</small>
                   </td>
-                  <td>{row.action}</td>
+                  <td>
+                    <StatusBadge value={row.action} />
+                  </td>
                   <td>
                     {row.actor_user_id}
                     <br />

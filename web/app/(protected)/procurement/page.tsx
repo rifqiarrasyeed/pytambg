@@ -1,7 +1,11 @@
 "use client";
 
+import { RefreshCw, ShoppingCart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AttachmentUploader } from "@/components/attachment-uploader";
+import { ErrorState } from "@/components/feedback-states";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
 import type { LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
@@ -225,6 +229,21 @@ export default function ProcurementPage() {
 
   return (
     <div className="page">
+      <PageHeader
+        title="Procurement & Receiving"
+        subtitle="Kelola PO, approval, dan posting GRN dengan idempotency dan bukti faktur."
+        icon={ShoppingCart}
+        actions={
+          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+        }
+        chips={<span className="status-badge status-neutral">Selected PO: {selectedPurchase?.po_no ?? "-"}</span>}
+      />
+
+      <ErrorState message={error} />
+
       <section className="card">
         <div className="card-header">
           <strong>Procurement (PO)</strong>
@@ -287,7 +306,6 @@ export default function ProcurementPage() {
             >
               Approve Selected PO
             </button>
-            <span className="badge badge-neutral">Selected PO: {selectedPurchase?.po_no ?? "-"}</span>
           </div>
           {!canProcurementWrite ? <div className="badge badge-warn">Role aktif tidak memiliki izin procurement.write</div> : null}
         </form>
@@ -358,7 +376,6 @@ export default function ProcurementPage() {
             Post GRN
           </button>
           {!canReceiptPost ? <div className="badge badge-warn">Role aktif tidak memiliki izin receipt.post</div> : null}
-          {error ? <div className="badge badge-danger">{error}</div> : null}
         </form>
       </section>
 
@@ -391,7 +408,7 @@ export default function ProcurementPage() {
                     </td>
                     <td>{po.po_no}</td>
                     <td>
-                      <span className="badge badge-neutral">{po.status}</span>
+                      <StatusBadge value={po.status} />
                     </td>
                     <td>{vendorNameById.get(po.vendor_id) ?? po.vendor_id}</td>
                     <td>{po.eta_date}</td>
@@ -415,7 +432,7 @@ export default function ProcurementPage() {
                   <tr key={grn.id}>
                     <td>{grn.grn_no}</td>
                     <td>
-                      <span className="badge badge-neutral">{grn.status}</span>
+                      <StatusBadge value={grn.status} />
                     </td>
                     <td>{poNoById.get(grn.purchase_id) ?? grn.purchase_id}</td>
                     <td>{new Date(grn.received_at).toLocaleString("id-ID")}</td>
