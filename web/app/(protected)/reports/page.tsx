@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/feedback-states";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { apiClient } from "@/lib/api-client";
+import type { QaIntegrityResponse } from "@/lib/contracts";
 
 type Kpi = {
   date: string;
@@ -31,6 +32,7 @@ type Job = {
 export default function ReportsPage() {
   const [kpi, setKpi] = useState<Kpi | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [integrity, setIntegrity] = useState<QaIntegrityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -51,6 +53,12 @@ export default function ReportsPage() {
       ]);
       setKpi(kpiData);
       setJobs(jobsData.data ?? []);
+      try {
+        const integrityData = await apiClient<QaIntegrityResponse>("/api/proxy/qa/health-integrity");
+        setIntegrity(integrityData);
+      } catch {
+        setIntegrity(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal load reports");
     }
@@ -131,6 +139,44 @@ export default function ReportsPage() {
               <p>{Math.round((kpi?.verified_rate ?? 0) * 100)}%</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <strong>Integrity Health</strong>
+          <StatusBadge value={integrity ? (integrity.ok ? "SUCCEEDED" : "FAILED") : "N/A"} />
+        </div>
+        <div className="card-body">
+          <div className="grid-3">
+            <div className="card kpi">
+              <h3>RLS Missing</h3>
+              <p>{integrity?.checks.rls_missing_count ?? "-"}</p>
+            </div>
+            <div className="card kpi">
+              <h3>Policy Missing</h3>
+              <p>{integrity?.checks.deny_policy_missing_count ?? "-"}</p>
+            </div>
+            <div className="card kpi">
+              <h3>Trigger Missing</h3>
+              <p>{integrity?.checks.required_trigger_missing_count ?? "-"}</p>
+            </div>
+            <div className="card kpi">
+              <h3>Ledger Delta</h3>
+              <p>{integrity?.checks.stock_mv_mismatch_count ?? "-"}</p>
+            </div>
+            <div className="card kpi">
+              <h3>Attachment Mismatch</h3>
+              <p>{integrity?.checks.attachment_tenant_mismatch_count ?? "-"}</p>
+            </div>
+            <div className="card kpi">
+              <h3>Leaked Grants</h3>
+              <p>{integrity?.checks.leaked_grants_count ?? "-"}</p>
+            </div>
+          </div>
+          <small style={{ color: "var(--muted)" }}>
+            Checked at: {integrity?.checked_at ? new Date(integrity.checked_at).toLocaleString("id-ID") : "-"}
+          </small>
         </div>
       </section>
 

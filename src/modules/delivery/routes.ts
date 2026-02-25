@@ -66,8 +66,11 @@ const resolveDisputeSchema = z.object({
 });
 
 function buildManifestNo(sppgId: string): string {
-  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  return `MNF-${sppgId.slice(0, 8).toUpperCase()}-${date}-${Math.floor(Math.random() * 900 + 100)}`;
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replaceAll("-", "");
+  const time = now.toISOString().slice(11, 19).replaceAll(":", "");
+  const rand = Math.floor(Math.random() * 900000 + 100000);
+  return `MNF-${sppgId.slice(0, 8).toUpperCase()}-${date}${time}-${rand}`;
 }
 
 function toDateOnly(value: string): string {
@@ -538,8 +541,8 @@ export async function deliveryRoutes(app: FastifyInstance): Promise<void> {
         await query(
           `
             UPDATE delivery_stops
-            SET status = $4,
-                arrived_at = CASE WHEN $4 = 'DELIVERED' THEN now() ELSE arrived_at END,
+            SET status = $4::stop_status,
+                arrived_at = CASE WHEN $4::stop_status = 'DELIVERED'::stop_status THEN now() ELSE arrived_at END,
                 updated_at = now(),
                 updated_by = $5
             WHERE id = $1 AND delivery_id = $2 AND sppg_id = $3

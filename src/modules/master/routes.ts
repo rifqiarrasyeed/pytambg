@@ -202,7 +202,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         FROM routes
         WHERE sppg_id = $1
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%' OR code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR status = UPPER($3))
+          AND ($3::text IS NULL OR status::text = UPPER($3))
       `,
       [sppgId, list.search ?? null, list.status ?? null]
     );
@@ -213,7 +213,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         FROM routes
         WHERE sppg_id = $1
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%' OR code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR status = UPPER($3))
+          AND ($3::text IS NULL OR status::text = UPPER($3))
         ORDER BY ${order.sql}
         LIMIT $4 OFFSET $5
       `,
@@ -325,7 +325,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         FROM vendors
         WHERE sppg_id = $1
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%' OR code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR status = UPPER($3))
+          AND ($3::text IS NULL OR status::text = UPPER($3))
       `,
       [sppgId, list.search ?? null, list.status ?? null]
     );
@@ -336,7 +336,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         FROM vendors
         WHERE sppg_id = $1
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%' OR code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR status = UPPER($3))
+          AND ($3::text IS NULL OR status::text = UPPER($3))
         ORDER BY ${order.sql}
         LIMIT $4 OFFSET $5
       `,
@@ -589,7 +589,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         FROM recipes r
         WHERE r.sppg_id = $1
           AND ($2::text IS NULL OR r.name ILIKE '%' || $2 || '%' OR r.code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR r.status = UPPER($3))
+          AND ($3::text IS NULL OR r.status::text = UPPER($3))
       `,
       [sppgId, list.search ?? null, list.status ?? null]
     );
@@ -603,7 +603,7 @@ export async function masterRoutes(app: FastifyInstance): Promise<void> {
         LEFT JOIN recipe_items ri ON ri.recipe_id = r.id AND ri.sppg_id = r.sppg_id
         WHERE r.sppg_id = $1
           AND ($2::text IS NULL OR r.name ILIKE '%' || $2 || '%' OR r.code ILIKE '%' || $2 || '%')
-          AND ($3::text IS NULL OR r.status = UPPER($3))
+          AND ($3::text IS NULL OR r.status::text = UPPER($3))
         GROUP BY r.id
         ORDER BY ${order.sql}
         LIMIT $4 OFFSET $5

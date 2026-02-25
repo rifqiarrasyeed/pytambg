@@ -5,6 +5,8 @@ export type ApiError = {
     code: string;
     message: string;
     details?: Record<string, unknown>;
+    request_id?: string;
+    timestamp?: string;
   };
 };
 
@@ -35,11 +37,19 @@ export async function apiClient<T>(path: string, init?: RequestInit): Promise<T>
   });
 
   const text = await response.text();
-  const parsed = text ? JSON.parse(text) : {};
+  let parsed: unknown = {};
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {};
+    }
+  }
 
   if (!response.ok) {
     const err = parsed as ApiError;
-    throw new Error(err.error?.message ?? `HTTP ${response.status}`);
+    const code = err.error?.code ? `[${err.error.code}] ` : "";
+    throw new Error(`${code}${err.error?.message ?? `HTTP ${response.status}`}`);
   }
 
   return parsed as T;

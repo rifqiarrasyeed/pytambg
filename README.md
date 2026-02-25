@@ -51,6 +51,8 @@ Dokumentasi detail tersedia di folder `docs/`:
   - `GET /sppg/:id/assignments`
 - Endpoint trend dashboard:
   - `GET /reports/kpi-trend`
+- Endpoint observability QA:
+  - `GET /qa/health-integrity`
 
 ## Struktur Direktori
 - `src/` backend modules, guards, services
@@ -73,6 +75,8 @@ Dokumentasi detail tersedia di folder `docs/`:
 ### Perintah Backend
 - Build: `npm run build`
 - Test: `npm test`
+- E2E Playwright: `npm run e2e`
+- Full quality gate lokal: `npm run qa:full`
 - Worker report: `npm run worker:reports`
 - Worker maintenance: `npm run worker:maintenance`
 
@@ -112,13 +116,16 @@ Catatan UX lokal:
 
 ## Deploy Automation
 Set env sesuai target lalu jalankan:
+- Preflight env: `npm run deploy:preflight`
 - DB reset (opsional lokal/UAT): `npm run deploy:db:reset`
 - DB init: `npm run deploy:db`
+- DB assert (RLS + integrity fail-fast): `npm run deploy:db:assert`
 - Storage init: `npm run deploy:storage`
 - Render provision: `npm run deploy:render`
 - Vercel provision: `npm run deploy:vercel`
 - Smoke test: `npm run deploy:smoke`
 - Full chain: `npm run deploy:all`
+- Full chain Vercel-only (default skip Render): `npm run deploy:all:vercel`
 
 Template env provisioning tersedia di:
 - `scripts/deploy/.env.example`
@@ -126,15 +133,20 @@ Template env provisioning tersedia di:
 ### Env penting backend
 - `DATABASE_URL`
 - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+- `CORS_ALLOWED_ORIGINS`
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_BUCKET_DELIVERY_PROOFS`, `SUPABASE_BUCKET_QC_PROOFS`, `SUPABASE_BUCKET_INCIDENT_PROOFS`, `SUPABASE_BUCKET_INVOICES`, `SUPABASE_BUCKET_EXPORTS`
 
 ### Env penting provisioning
-- `RENDER_API_KEY` (+ `RENDER_SERVICE_ID` atau `RENDER_OWNER_ID` + `RENDER_REPO_URL`)
-- `VERCEL_TOKEN` (+ `VERCEL_PROJECT_NAME`, optional `VERCEL_GIT_REPO`)
+- `DEPLOY_INCLUDE_RENDER` (default `false`)
+- `RENDER_API_KEY` (+ `RENDER_SERVICE_ID` atau `RENDER_OWNER_ID` + `RENDER_REPO_URL`) jika `DEPLOY_INCLUDE_RENDER=true`
+- `VERCEL_TOKEN` (+ `VERCEL_PROJECT_NAME`, optional `VERCEL_GIT_REPO`, optional `VERCEL_TEAM_ID`)
+- `VERCEL_TRIGGER_DEPLOY` (`true|false`)
 - `SMOKE_API_BASE_URL` (+ optional `SMOKE_USER_EMAIL`, `SMOKE_USER_PASSWORD`)
 
 ## SQL Utilities
+- Migration besar bertahap:
+  - `sql/migrations/*.sql`
 - Refresh saldo stok MV:
   - `sql/refresh_stock_balances.sql`
 - Integrity checks:
@@ -147,3 +159,34 @@ Template env provisioning tersedia di:
 - Supabase storage bucket disetel private
 - Signed URL durasi pendek
 - Lampiran memiliki metadata checksum SHA-256
+
+## Baseline Stabil Lokal
+Baseline ini adalah snapshot lokal yang sudah lolos gate kualitas penuh untuk operasional solo.
+
+### Gate tunggal wajib
+- Jalankan: `npm run qa:full`
+- Gate ini mengeksekusi berurutan:
+  - `npm test`
+  - `npm run build`
+  - `npm run web:build`
+  - `npm run deploy:db:assert`
+  - `npm run e2e`
+
+### Endpoint kritikal baru/diubah pada baseline
+- `GET /qa/health-integrity` (ringkasan health integrity DB)
+- Error envelope runtime hardening (validasi tidak jatuh ke HTTP 500 generik)
+- Tenancy body sanitization (`sppg_id` body diabaikan server, kecuali endpoint switch tenant)
+- Idempotency enforcement konsisten untuk:
+  - `POST /receipts`
+  - `POST /deliveries/:id/proof`
+  - `POST /deliveries/:id/verify`
+
+### File migrasi dan assert penting
+- `sql/migrations/2026_02_25_tenant_fk_hardening.sql`
+- `sql/check_rls.sql`
+- `sql/check_integrity.sql`
+- `scripts/deploy/06-db-assert.ts`
+
+### Catatan operasional solo
+- Jika gate gagal karena konflik data UAT (mis. tanggal plan bentrok), jalankan ulang setelah seed/reset yang sesuai.
+- Jangan commit file rahasia (`.env`, `.env.local`, `scripts/deploy/.env.local`).

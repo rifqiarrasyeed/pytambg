@@ -27,6 +27,17 @@ function intEnv(name: string, fallback: number): number {
   return parsed;
 }
 
+function csvEnv(name: string, fallback: string[]): string[] {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  return raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 export const config = {
   host: process.env.HOST ?? "0.0.0.0",
   port: intEnv("PORT", 3000),
@@ -48,5 +59,6 @@ export const config = {
   },
   storageSignedUrlTtlSeconds: intEnv("STORAGE_SIGNED_URL_TTL_SECONDS", 300),
   storageUploadSignedUrlTtlSeconds: intEnv("STORAGE_UPLOAD_SIGNED_URL_TTL_SECONDS", 900),
-  maxUploadBytes: intEnv("MAX_UPLOAD_BYTES", 15 * 1024 * 1024)
+  maxUploadBytes: intEnv("MAX_UPLOAD_BYTES", 15 * 1024 * 1024),
+  corsAllowedOrigins: csvEnv("CORS_ALLOWED_ORIGINS", ["http://localhost:3001", "http://127.0.0.1:3001"])
 };

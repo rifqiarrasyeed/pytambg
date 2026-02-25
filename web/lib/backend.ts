@@ -2,10 +2,7 @@ import { cookies } from "next/headers";
 import { ACCESS_COOKIE, ACTIVE_SPPG_COOKIE, REFRESH_COOKIE } from "./constants";
 
 function apiBase(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
-  }
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
   return base.replace(/\/+$/, "");
 }
 

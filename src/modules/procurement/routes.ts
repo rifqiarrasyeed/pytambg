@@ -50,13 +50,19 @@ const createReceiptSchema = z.object({
 });
 
 function buildPoNo(sppgId: string): string {
-  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  return `PO-${sppgId.slice(0, 8).toUpperCase()}-${date}-${Math.floor(Math.random() * 900 + 100)}`;
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replaceAll("-", "");
+  const time = now.toISOString().slice(11, 19).replaceAll(":", "");
+  const rand = Math.floor(Math.random() * 900000 + 100000);
+  return `PO-${sppgId.slice(0, 8).toUpperCase()}-${date}${time}-${rand}`;
 }
 
 function buildGrnNo(sppgId: string): string {
-  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  return `GRN-${sppgId.slice(0, 8).toUpperCase()}-${date}-${Math.floor(Math.random() * 900 + 100)}`;
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replaceAll("-", "");
+  const time = now.toISOString().slice(11, 19).replaceAll(":", "");
+  const rand = Math.floor(Math.random() * 900000 + 100000);
+  return `GRN-${sppgId.slice(0, 8).toUpperCase()}-${date}${time}-${rand}`;
 }
 
 async function nextMoveNo(client: { query: typeof query }, sppgId: string): Promise<number> {
@@ -90,7 +96,7 @@ export async function procurementRoutes(app: FastifyInstance): Promise<void> {
           SELECT COUNT(*)::text AS total
           FROM purchases
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR eta_date >= $3::date)
             AND ($4::date IS NULL OR eta_date <= $4::date)
         `,
@@ -102,7 +108,7 @@ export async function procurementRoutes(app: FastifyInstance): Promise<void> {
           SELECT id, po_no, vendor_id, eta_date, status, approved_by, approved_at, created_at
           FROM purchases
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR eta_date >= $3::date)
             AND ($4::date IS NULL OR eta_date <= $4::date)
           ORDER BY ${order.sql}
@@ -140,7 +146,7 @@ export async function procurementRoutes(app: FastifyInstance): Promise<void> {
           SELECT COUNT(*)::text AS total
           FROM receipts
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR received_at::date >= $3::date)
             AND ($4::date IS NULL OR received_at::date <= $4::date)
         `,
@@ -152,7 +158,7 @@ export async function procurementRoutes(app: FastifyInstance): Promise<void> {
           SELECT id, grn_no, purchase_id, received_at, status, created_at
           FROM receipts
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR received_at::date >= $3::date)
             AND ($4::date IS NULL OR received_at::date <= $4::date)
           ORDER BY ${order.sql}

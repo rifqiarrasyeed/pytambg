@@ -1,13 +1,22 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import "./_env";
 
-const steps = [
-  "scripts/deploy/01-db-init.ts",
-  "scripts/deploy/02-storage-init.ts",
-  "scripts/deploy/03-render-provision.ts",
-  "scripts/deploy/04-vercel-provision.ts",
-  "scripts/deploy/05-smoke-test.ts"
-];
+function resolveSteps(): string[] {
+  const includeRender = (process.env.DEPLOY_INCLUDE_RENDER ?? "false").toLowerCase() === "true";
+  const steps = [
+    "scripts/deploy/00-preflight.ts",
+    "scripts/deploy/01-db-init.ts",
+    "scripts/deploy/06-db-assert.ts",
+    "scripts/deploy/02-storage-init.ts"
+  ];
+  if (includeRender) {
+    steps.push("scripts/deploy/03-render-provision.ts");
+  }
+  steps.push("scripts/deploy/04-vercel-provision.ts");
+  steps.push("scripts/deploy/05-smoke-test.ts");
+  return steps;
+}
 
 async function runStep(file: string): Promise<void> {
   await new Promise<void>((resolvePromise, rejectPromise) => {
@@ -28,6 +37,7 @@ async function runStep(file: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const steps = resolveSteps();
   for (const step of steps) {
     // eslint-disable-next-line no-console
     console.info(`[deploy] run ${step}`);

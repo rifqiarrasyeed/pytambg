@@ -52,6 +52,12 @@ async function main(): Promise<void> {
     await callJson(`${apiBase}/reports/kpi`, { headers: authHeader });
     // eslint-disable-next-line no-console
     console.info("[smoke] /reports/kpi OK");
+    await callJson(`${apiBase}/reports/kpi-trend?date_from=2026-01-01&date_to=2026-01-07&granularity=day`, { headers: authHeader });
+    // eslint-disable-next-line no-console
+    console.info("[smoke] /reports/kpi-trend OK");
+    await callJson(`${apiBase}/qa/health-integrity`, { headers: authHeader });
+    // eslint-disable-next-line no-console
+    console.info("[smoke] /qa/health-integrity OK");
   }
 }
 

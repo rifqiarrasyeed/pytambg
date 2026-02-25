@@ -56,7 +56,7 @@ export async function planningRoutes(app: FastifyInstance): Promise<void> {
           SELECT COUNT(*)::text AS total
           FROM menu_plans
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR plan_date >= $3::date)
             AND ($4::date IS NULL OR plan_date <= $4::date)
         `,
@@ -68,7 +68,7 @@ export async function planningRoutes(app: FastifyInstance): Promise<void> {
           SELECT id, plan_date, status, buffer_pct, approved_by, approved_at, created_at
           FROM menu_plans
           WHERE sppg_id = $1
-            AND ($2::text IS NULL OR status = UPPER($2))
+            AND ($2::text IS NULL OR status::text = UPPER($2))
             AND ($3::date IS NULL OR plan_date >= $3::date)
             AND ($4::date IS NULL OR plan_date <= $4::date)
           ORDER BY ${order.sql}
@@ -113,52 +113,60 @@ export async function planningRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const planId = randomUUID();
-      await withTransaction(async (client) => {
-        await client.query(
-          `
-            INSERT INTO menu_plans (
-              id, sppg_id, plan_date, status, buffer_pct, approved_by, approved_at,
-              created_at, created_by, updated_at, updated_by
-            ) VALUES (
-              $1, $2, $3::date, 'DRAFT', $4, NULL, NULL,
-              now(), $5, now(), $5
-            )
-          `,
-          [planId, sppgId, body.plan_date, body.buffer_pct, request.auth!.user_id]
-        );
-
-        for (const item of body.items) {
+      try {
+        await withTransaction(async (client) => {
           await client.query(
             `
-              INSERT INTO plan_items (
-                id, sppg_id, menu_plan_id, school_id, recipe_id, target_portions,
+              INSERT INTO menu_plans (
+                id, sppg_id, plan_date, status, buffer_pct, approved_by, approved_at,
                 created_at, created_by, updated_at, updated_by
               ) VALUES (
-                gen_random_uuid(), $1, $2, $3, $4, $5,
-                now(), $6, now(), $6
+                $1, $2, $3::date, 'DRAFT', $4, NULL, NULL,
+                now(), $5, now(), $5
               )
             `,
-            [sppgId, planId, item.school_id, item.recipe_id, item.target_portions, request.auth!.user_id]
+            [planId, sppgId, body.plan_date, body.buffer_pct, request.auth!.user_id]
           );
-        }
 
-        await writeAudit(
-          {
-            sppgId,
-            entityTable: "menu_plans",
-            entityId: planId,
-            action: "CREATE",
-            newValue: body,
-            actorUserId: request.auth!.user_id,
-            actorRole: request.auth!.roles.join(","),
-            requestId: request.id,
-            deviceId: request.deviceId,
-            ip: request.ip,
-            userAgent: request.headers["user-agent"]?.toString()
-          },
-          client
-        );
-      });
+          for (const item of body.items) {
+            await client.query(
+              `
+                INSERT INTO plan_items (
+                  id, sppg_id, menu_plan_id, school_id, recipe_id, target_portions,
+                  created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                  gen_random_uuid(), $1, $2, $3, $4, $5,
+                  now(), $6, now(), $6
+                )
+              `,
+              [sppgId, planId, item.school_id, item.recipe_id, item.target_portions, request.auth!.user_id]
+            );
+          }
+
+          await writeAudit(
+            {
+              sppgId,
+              entityTable: "menu_plans",
+              entityId: planId,
+              action: "CREATE",
+              newValue: body,
+              actorUserId: request.auth!.user_id,
+              actorRole: request.auth!.roles.join(","),
+              requestId: request.id,
+              deviceId: request.deviceId,
+              ip: request.ip,
+              userAgent: request.headers["user-agent"]?.toString()
+            },
+            client
+          );
+        });
+      } catch (error) {
+        const maybePg = error as { code?: string };
+        if (maybePg.code === "23505") {
+          throw conflict("CONFLICT", "Menu plan untuk tanggal tersebut sudah ada");
+        }
+        throw error;
+      }
 
       const mrp = await query<{
         item_id: string;

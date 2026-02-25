@@ -7,3 +7,5 @@ web/.next/
 coverage/
 *.log
 tests/*.js
+playwright-report/
+test-results/

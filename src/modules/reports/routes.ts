@@ -8,6 +8,7 @@ import { notFound, unprocessable } from "../../utils/api-error";
 import { buildPagingMeta, parseListQuery } from "../../utils/pagination";
 import { resolveOrderBy } from "../../utils/sorting";
 import { resolveKpiTrendRange } from "./kpi-trend";
+import { writeAudit } from "../../services/audit-service";
 
 const kpiSchema = z.object({
   date: z.string().date().optional(),
@@ -222,6 +223,20 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
         `,
         [jobId, sppgId, body.report_type, body.format, JSON.stringify(body), request.auth!.user_id]
       );
+
+      await writeAudit({
+        sppgId,
+        entityTable: "reports_jobs",
+        entityId: jobId,
+        action: "CREATE",
+        newValue: body,
+        actorUserId: request.auth!.user_id,
+        actorRole: request.auth!.roles.join(","),
+        requestId: request.id,
+        deviceId: request.deviceId,
+        ip: request.ip,
+        userAgent: request.headers["user-agent"]?.toString()
+      });
 
       return reply.status(202).send({
         job_id: jobId,

@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import sensible from "@fastify/sensible";
 import cors from "@fastify/cors";
+import { config } from "./config";
 import { registerErrorHandler } from "./plugins/error-handler";
 import { authPlugin } from "./plugins/auth";
 import { authRoutes } from "./modules/auth/routes";
@@ -17,6 +18,7 @@ import { auditRoutes } from "./modules/audit/routes";
 import { attachmentRoutes } from "./modules/attachments/routes";
 import { incidentRoutes } from "./modules/incidents/routes";
 import { periodLockRoutes } from "./modules/period-locks/routes";
+import { qaRoutes } from "./modules/qa/routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -25,18 +27,33 @@ export async function buildApp() {
     }
   });
 
+  const allowedOrigins = new Set(config.corsAllowedOrigins);
+
   await app.register(cors, {
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true
   });
   await app.register(sensible);
   await app.register(authPlugin);
+  await registerErrorHandler(app);
 
   app.addHook("preValidation", async (request) => {
+    const routeUrl = request.routeOptions.url ?? request.url;
+    const allowBodySppgId = routeUrl === "/me/active-sppg";
     if (request.body && typeof request.body === "object" && !Array.isArray(request.body)) {
       const body = request.body as Record<string, unknown>;
       // Tenant scope wajib berasal dari context auth, bukan request body.
-      if ("sppg_id" in body) {
+      if (!allowBodySppgId && "sppg_id" in body) {
         delete body.sppg_id;
       }
     }
@@ -58,8 +75,7 @@ export async function buildApp() {
   await app.register(attachmentRoutes);
   await app.register(periodLockRoutes);
   await app.register(incidentRoutes);
-
-  await registerErrorHandler(app);
+  await app.register(qaRoutes);
 
   return app;
 }

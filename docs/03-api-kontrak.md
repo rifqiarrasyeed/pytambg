@@ -120,6 +120,7 @@ Response:
 - `POST /reports/export`
 - `GET /reports/jobs`
 - `GET /reports/jobs/:id`
+- `GET /qa/health-integrity` (ringkasan health RLS/policy/trigger/ledger)
 - `GET /period-locks`
 - `POST /period-locks/:date/lock`
 - `POST /period-locks/:date/unlock`

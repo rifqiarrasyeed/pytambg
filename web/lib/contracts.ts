@@ -6,6 +6,16 @@ export type PaginatedResponse<T> = {
   has_next: boolean;
 };
 
+export type ApiErrorEnvelope = {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+    request_id: string;
+    timestamp: string;
+  };
+};
+
 export type ThemeMode = "light" | "dark" | "system";
 
 export type NavItemMeta = {
@@ -49,6 +59,20 @@ export type KpiTrendResponse = {
   date_to: string;
   granularity: "day";
   series: KpiTrendPoint[];
+};
+
+export type QaIntegrityResponse = {
+  ok: boolean;
+  scope_sppg_id: string;
+  checks: {
+    rls_missing_count: number;
+    deny_policy_missing_count: number;
+    leaked_grants_count: number;
+    required_trigger_missing_count: number;
+    stock_mv_mismatch_count: number;
+    attachment_tenant_mismatch_count: number;
+  };
+  checked_at: string;
 };
 
 export type MeSppgAssignment = {

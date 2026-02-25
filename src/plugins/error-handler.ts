@@ -2,6 +2,14 @@ import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import { ApiError, sendApiError } from "../utils/api-error";
 
+function isZodLikeError(error: unknown): error is { issues: unknown[] } {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const maybe = error as { name?: unknown; issues?: unknown };
+  return (maybe.name === "ZodError" || Array.isArray(maybe.issues)) && Array.isArray(maybe.issues);
+}
+
 export async function registerErrorHandler(app: FastifyInstance): Promise<void> {
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ApiError) {
@@ -10,6 +18,17 @@ export async function registerErrorHandler(app: FastifyInstance): Promise<void> 
     }
 
     if (error instanceof ZodError) {
+      sendApiError(
+        reply,
+        request,
+        new ApiError(422, "VALIDATION_ERROR", "Validasi request gagal", {
+          issues: error.issues
+        })
+      );
+      return;
+    }
+
+    if (isZodLikeError(error)) {
       sendApiError(
         reply,
         request,

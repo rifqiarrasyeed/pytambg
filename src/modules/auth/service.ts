@@ -277,19 +277,21 @@ export async function refresh(
   };
 }
 
-export async function logout(payload: { refresh_token: string }): Promise<void> {
+export async function logout(payload: { refresh_token: string }): Promise<{ user_id: string; active_sppg_id: string | null } | null> {
   const { sessionId, secretPart } = parseRefreshToken(payload.refresh_token);
   const result = await query<{
+    user_id: string;
+    active_sppg_id: string | null;
     refresh_token_hash: string;
-  }>("SELECT refresh_token_hash FROM sessions_tokens WHERE id = $1 LIMIT 1", [sessionId]);
+  }>("SELECT user_id, active_sppg_id, refresh_token_hash FROM sessions_tokens WHERE id = $1 LIMIT 1", [sessionId]);
 
   const row = result.rows[0];
   if (!row) {
-    return;
+    return null;
   }
 
   if (row.refresh_token_hash !== sha256(secretPart)) {
-    return;
+    return null;
   }
 
   await query(
@@ -300,6 +302,11 @@ export async function logout(payload: { refresh_token: string }): Promise<void> 
     `,
     [sessionId]
   );
+
+  return {
+    user_id: row.user_id,
+    active_sppg_id: row.active_sppg_id
+  };
 }
 
 export async function switchActiveSppg(

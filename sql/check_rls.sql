@@ -31,6 +31,12 @@ LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = 'public'
 ORDER BY p.table_name;
 
+-- Tabel sensitif yang wajib FORCE RLS (defense-in-depth).
+SELECT relname AS table_name, relforcerowsecurity AS rls_forced
+FROM pg_class
+WHERE relname IN ('audit_logs', 'stock_moves', 'attachments', 'entity_attachments', 'delivery_proofs')
+ORDER BY relname;
+
 WITH protected_tables AS (
   SELECT unnest(
     ARRAY[

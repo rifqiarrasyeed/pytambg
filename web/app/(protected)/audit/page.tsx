@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw, ScrollText } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ErrorState } from "@/components/feedback-states";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -19,8 +19,15 @@ type AuditRow = {
   new_value: Record<string, unknown>;
 };
 
+type UserLookup = {
+  id: string;
+  full_name: string;
+  email: string;
+};
+
 export default function AuditPage() {
   const [rows, setRows] = useState<AuditRow[]>([]);
+  const [users, setUsers] = useState<UserLookup[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     entity_table: "",
@@ -29,6 +36,7 @@ export default function AuditPage() {
     end_at: "",
     limit: "200"
   });
+  const userById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
   const load = async () => {
     const params = new URLSearchParams();
@@ -39,8 +47,13 @@ export default function AuditPage() {
     params.set("limit", filters.limit || "200");
 
     try {
-      const data = await apiClient<{ data: AuditRow[] }>(`/api/proxy/audit-logs?${params.toString()}`);
-      setRows(data.data ?? []);
+      const [auditData, usersData] = await Promise.all([
+        apiClient<{ data: AuditRow[] }>(`/api/proxy/audit-logs?${params.toString()}`),
+        apiClient<{ data: UserLookup[] }>("/api/proxy/users?page=1&page_size=200")
+      ]);
+      const activeUsers = usersData.data ?? [];
+      setUsers(activeUsers);
+      setRows(auditData.data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal load audit");
     }
@@ -78,8 +91,15 @@ export default function AuditPage() {
               <input className="input" value={filters.entity_table} onChange={(e) => setFilters({ ...filters, entity_table: e.target.value })} />
             </label>
             <label>
-              Actor User ID
-              <input className="input" value={filters.actor_user_id} onChange={(e) => setFilters({ ...filters, actor_user_id: e.target.value })} />
+              Actor
+              <select className="select" value={filters.actor_user_id} onChange={(e) => setFilters({ ...filters, actor_user_id: e.target.value })}>
+                <option value="">Semua Actor</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.full_name} | {user.email}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Start At
@@ -125,9 +145,11 @@ export default function AuditPage() {
                     <StatusBadge value={row.action} />
                   </td>
                   <td>
-                    {row.actor_user_id}
+                    {(userById.get(row.actor_user_id)?.full_name ?? row.actor_user_id)}
                     <br />
-                    <small>{row.actor_role}</small>
+                    <small>
+                      {(userById.get(row.actor_user_id)?.email ?? row.actor_role)}
+                    </small>
                   </td>
                   <td>
                     <details>

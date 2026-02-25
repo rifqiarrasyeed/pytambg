@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Client } from "pg";
 import "./_env";
@@ -18,11 +18,24 @@ async function applySql(client: Client, filePath: string): Promise<void> {
   console.info(`[db-init] applied ${filePath}`);
 }
 
+async function applyMigrations(client: Client, migrationsDir: string): Promise<void> {
+  const entries = await readdir(migrationsDir, { withFileTypes: true }).catch(() => []);
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".sql"))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const file of files) {
+    await applySql(client, resolve(migrationsDir, file));
+  }
+}
+
 async function main(): Promise<void> {
   const databaseUrl = required("DATABASE_URL");
   const root = resolve(process.cwd());
 
   const schemaPath = resolve(root, "sql", "schema.sql");
+  const migrationsDir = resolve(root, "sql", "migrations");
   const seedPath = resolve(root, "sql", "seed.sql");
   const refreshPath = resolve(root, "sql", "refresh_stock_balances.sql");
   const integrityPath = resolve(root, "sql", "check_integrity.sql");
@@ -33,6 +46,7 @@ async function main(): Promise<void> {
 
   try {
     await applySql(client, schemaPath);
+    await applyMigrations(client, migrationsDir);
     await applySql(client, seedPath);
     await applySql(client, refreshPath);
     await applySql(client, integrityPath);
