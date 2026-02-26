@@ -1,0 +1,643 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PlanInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  OVERDUE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+enum DailyPlanStatus {
+  DRAFT
+  APPROVED
+  LOCKED
+  ADJUSTMENT_REQUESTED
+  APPROVED_ADJUSTMENT
+}
+
+enum ProductionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+}
+
+enum DeliveryStatus {
+  PLANNED
+  LOADED
+  IN_TRANSIT
+  DELIVERED
+  VERIFIED
+  DISPUTED
+  RESOLVED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  MISMATCH_REPORTED
+  RESOLVED
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum StorageDriver {
+  LOCAL
+  S3
+}
+
+model PlatformUser {
+  id             String             @id @default(cuid())
+  email          String             @unique
+  name           String
+  passwordHash   String
+  isActive       Boolean            @default(true)
+  lastActiveAt   DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  tenantMembers  TenantMember[]
+  platformRoles  PlatformUserRole[]
+  platformAudits PlatformAuditLog[] @relation("PlatformAuditActor")
+  tenantAudits   TenantAuditLog[]   @relation("TenantAuditActor")
+}
+
+model PlatformRole {
+  id        String             @id @default(cuid())
+  code      String             @unique
+  name      String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  users     PlatformUserRole[]
+}
+
+model PlatformUserRole {
+  id        String       @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime     @default(now())
+  user      PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      PlatformRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+}
+
+model PlatformAuditLog {
+  id         String       @id @default(cuid())
+  actorId    String?
+  actorRole  String
+  entity     String
+  entityId   String
+  action     String
+  oldValue   Json?
+  newValue   Json?
+  reason     String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime     @default(now())
+  actor      PlatformUser? @relation("PlatformAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId, createdAt(sort: Desc)])
+}
+
+model PlatformSetting {
+  id               String   @id @default(cuid())
+  gracePeriodDays  Int      @default(7)
+  updatedById      String?
+  updatedAt        DateTime @updatedAt
+}
+
+model Tenant {
+  id               String             @id @default(cuid())
+  code             String             @unique
+  name             String
+  picName          String?
+  picContact       String?
+  timezone         String             @default("Asia/Jakarta")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  settings         TenantSetting?
+  members          TenantMember[]
+  schools          School[]
+  routes           Route[]
+  menuItems        MenuItem[]
+  subscriptions    Subscription[]
+  invoices         Invoice[]
+  payments         Payment[]
+  dailyPlans       DailyPlan[]
+  dailyPlanItems   DailyPlanItem[]
+  productions      Production[]
+  productionAttachments ProductionAttachment[]
+  deliveries       Delivery[]
+  deliveryStops    DeliveryStop[]
+  deliveryProofs   DeliveryProof[]
+  deliveryStatusLogs DeliveryStatusLog[]
+  verifications    Verification[]
+  disputes         Dispute[]
+  files            FileObject[]
+  auditLogs        TenantAuditLog[]
+  midtransEvents   MidtransEvent[]
+}
+
+model TenantSetting {
+  id                String   @id @default(cuid())
+  tenantId          String   @unique
+  logoUrl           String?
+  lockAfterVerified Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model TenantRole {
+  id        String             @id @default(cuid())
+  code      String             @unique
+  name      String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  members   TenantMemberRole[]
+}
+
+model TenantMember {
+  id             String             @id @default(cuid())
+  tenantId       String
+  userId         String
+  status         MemberStatus       @default(ACTIVE)
+  isDefault      Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           PlatformUser       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles          TenantMemberRole[]
+  deliveriesAsDriver Delivery[]     @relation("DeliveryDriver")
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+model TenantMemberRole {
+  id        String       @id @default(cuid())
+  memberId  String
+  roleId    String
+  createdAt DateTime     @default(now())
+  member    TenantMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role      TenantRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, roleId])
+  @@index([roleId])
+}
+
+model School {
+  id          String         @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  address     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  routeStops  RouteStop[]
+  planItems   DailyPlanItem[]
+  deliveryStops DeliveryStop[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+}
+
+model Route {
+  id          String       @id @default(cuid())
+  tenantId    String
+  code        String
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stops       RouteStop[]
+  deliveries  Delivery[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+}
+
+model RouteStop {
+  id         String   @id @default(cuid())
+  tenantId   String
+  routeId    String
+  schoolId   String
+  stopOrder  Int
+  createdAt  DateTime @default(now())
+  route      Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, schoolId])
+  @@unique([routeId, stopOrder])
+  @@index([tenantId])
+}
+
+model MenuItem {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id           String        @id @default(cuid())
+  code         String        @unique
+  name         String
+  description  String?
+  price        Decimal       @db.Decimal(14, 2)
+  interval     PlanInterval
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  features     PlanFeature[]
+  limits       PlanLimit[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+}
+
+model PlanFeature {
+  id         String           @id @default(cuid())
+  planId     String
+  key        String
+  enabled    Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, key])
+}
+
+model PlanLimit {
+  id         String           @id @default(cuid())
+  planId     String
+  key        String
+  limitValue Int
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, key])
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  tenantId              String
+  planId                String
+  status                SubscriptionStatus @default(TRIAL)
+  trialEndsAt           DateTime?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  graceUntil            DateTime?
+  autoRenew             Boolean            @default(false)
+  midtransSubscriptionId String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan   @relation(fields: [planId], references: [id])
+  invoices              Invoice[]
+
+  @@index([tenantId, status])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  tenantId       String
+  subscriptionId String?
+  planId         String?
+  invoiceNo      String        @unique
+  amount         Decimal       @db.Decimal(14, 2)
+  currency       String        @default("IDR")
+  status         InvoiceStatus @default(OPEN)
+  dueAt          DateTime?
+  paidAt         DateTime?
+  providerOrderId String?
+  providerPayload Json?
+  lastWebhookEventId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan           SubscriptionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  payments       Payment[]
+
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([providerOrderId])
+  @@index([lastWebhookEventId])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  tenantId         String
+  invoiceId        String?
+  status           PaymentStatus @default(PENDING)
+  method           String?
+  amount           Decimal       @db.Decimal(14, 2)
+  providerPaymentId String?
+  providerPayload  Json?
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice          Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([providerPaymentId])
+}
+
+model MidtransEvent {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  providerEventId String   @unique
+  orderId         String?
+  eventType       String
+  payload         Json
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model DailyPlan {
+  id            String          @id @default(cuid())
+  tenantId      String
+  planDate      DateTime        @db.Date
+  menuSummary   String?
+  status        DailyPlanStatus @default(DRAFT)
+  approvedById  String?
+  approvedAt    DateTime?
+  lockedAt      DateTime?
+  createdById   String?
+  updatedById   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items         DailyPlanItem[]
+  productions   Production[]
+
+  @@unique([tenantId, planDate])
+  @@index([tenantId, status, planDate])
+}
+
+model DailyPlanItem {
+  id            String   @id @default(cuid())
+  tenantId      String
+  dailyPlanId   String
+  schoolId      String
+  targetPortions Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyPlan     DailyPlan @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+
+  @@unique([dailyPlanId, schoolId])
+  @@index([tenantId])
+}
+
+model Production {
+  id              String           @id @default(cuid())
+  tenantId        String
+  productionDate  DateTime         @db.Date
+  dailyPlanId     String?
+  status          ProductionStatus @default(NOT_STARTED)
+  plannedPortions Int              @default(0)
+  producedPortions Int             @default(0)
+  notes           String?
+  doneAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyPlan       DailyPlan?       @relation(fields: [dailyPlanId], references: [id], onDelete: SetNull)
+  attachments     ProductionAttachment[]
+
+  @@unique([tenantId, productionDate])
+  @@index([tenantId, status, productionDate])
+}
+
+model ProductionAttachment {
+  id           String      @id @default(cuid())
+  tenantId     String
+  productionId String
+  fileObjectId String
+  kind         String      @default("PHOTO")
+  createdAt    DateTime    @default(now())
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  production   Production  @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  fileObject   FileObject  @relation(fields: [fileObjectId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, productionId])
+}
+
+model Delivery {
+  id               String           @id @default(cuid())
+  tenantId         String
+  manifestNo       String
+  routeId          String
+  driverMemberId   String?
+  status           DeliveryStatus   @default(PLANNED)
+  plannedDeparture DateTime?
+  loadedAt         DateTime?
+  inTransitAt      DateTime?
+  deliveredAt      DateTime?
+  verifiedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  route            Route            @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  driverMember     TenantMember?    @relation("DeliveryDriver", fields: [driverMemberId], references: [id], onDelete: SetNull)
+  stops            DeliveryStop[]
+  proofs           DeliveryProof[]
+  statusLogs       DeliveryStatusLog[]
+
+  @@unique([tenantId, manifestNo])
+  @@index([tenantId, status, plannedDeparture])
+}
+
+model DeliveryStop {
+  id               String           @id @default(cuid())
+  tenantId         String
+  deliveryId       String
+  schoolId         String
+  plannedPortions  Int
+  deliveredPortions Int             @default(0)
+  status           DeliveryStatus   @default(PLANNED)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  delivery         Delivery         @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  school           School           @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  proofs           DeliveryProof[]
+  verification     Verification?
+  disputes         Dispute[]
+
+  @@unique([deliveryId, schoolId])
+  @@index([tenantId, status])
+}
+
+model DeliveryProof {
+  id           String      @id @default(cuid())
+  tenantId     String
+  deliveryId   String
+  stopId       String
+  fileObjectId String
+  proofType    String      @default("PHOTO")
+  capturedAt   DateTime    @default(now())
+  createdAt    DateTime    @default(now())
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  delivery     Delivery    @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  stop         DeliveryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  fileObject   FileObject  @relation(fields: [fileObjectId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, stopId])
+}
+
+model DeliveryStatusLog {
+  id           String         @id @default(cuid())
+  tenantId     String
+  deliveryId   String
+  fromStatus   DeliveryStatus?
+  toStatus     DeliveryStatus
+  note         String?
+  changedById  String?
+  createdAt    DateTime       @default(now())
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  delivery     Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, deliveryId, createdAt(sort: Desc)])
+}
+
+model Verification {
+  id               String             @id @default(cuid())
+  tenantId         String
+  stopId           String             @unique
+  status           VerificationStatus @default(PENDING)
+  verifiedById     String?
+  receivedPortions Int?
+  note             String?
+  verifiedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stop             DeliveryStop       @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+model Dispute {
+  id           String        @id @default(cuid())
+  tenantId     String
+  stopId       String
+  status       DisputeStatus @default(OPEN)
+  reason       String
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stop         DeliveryStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, createdAt(sort: Desc)])
+}
+
+model TenantAuditLog {
+  id          String        @id @default(cuid())
+  tenantId    String
+  actorId     String?
+  actorRole   String
+  entity      String
+  entityId    String
+  action      String
+  oldValue    Json
+  newValue    Json
+  reason      String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime      @default(now())
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor       PlatformUser? @relation("TenantAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, entity, entityId, createdAt(sort: Desc)])
+}
+
+model IdempotencyKey {
+  id           String   @id @default(cuid())
+  scope        String
+  endpoint     String
+  key          String
+  requestHash  String
+  responseCode Int?
+  responseBody Json?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([scope, endpoint, key])
+  @@index([expiresAt])
+}
+
+model FileObject {
+  id           String        @id @default(cuid())
+  tenantId     String
+  storageDriver StorageDriver
+  bucket       String?
+  objectKey    String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  checksumSha256 String
+  uploadedById String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productionAttachments ProductionAttachment[]
+  deliveryProofs  DeliveryProof[]
+
+  @@unique([tenantId, objectKey])
+  @@index([tenantId, createdAt(sort: Desc)])
+}
+

@@ -1,6 +1,12 @@
 import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 
+const useProdServer = process.env.E2E_USE_PROD === "1";
+const e2eEnv = {
+  ...process.env,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? "http://localhost:3001"
+};
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -21,16 +27,18 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "npm run dev",
+      command: useProdServer ? "npm run start" : "npm run dev",
       url: "http://localhost:3000/health",
       reuseExistingServer: false,
-      timeout: 120_000
+      timeout: useProdServer ? 180_000 : 120_000,
+      env: e2eEnv
     },
     {
-      command: "npm run web:dev",
+      command: useProdServer ? "npm run web:start" : "npm run web:dev",
       url: "http://localhost:3001/login",
       reuseExistingServer: false,
-      timeout: 120_000
+      timeout: useProdServer ? 240_000 : 120_000,
+      env: e2eEnv
     }
   ]
 });

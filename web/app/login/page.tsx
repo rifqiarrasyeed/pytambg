@@ -1,15 +1,16 @@
 "use client";
 
-import { KeyRound, LogIn } from "lucide-react";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
-import { resolveRoleHomeRoute } from "@/lib/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("superadmin@mbg.local");
+  const [password, setPassword] = useState("Passw0rd!");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,64 +19,72 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    let legacyReady = false;
     try {
-      const response = await apiClient<{
-        assignments?: Array<{ sppg_id: string; roles?: string[] }>;
-        active_sppg_id?: string | null;
-      }>("/api/auth/login", {
+      const legacyLogin = await fetch("/api/auth/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
-      const activeRoles =
-        response.assignments?.find((assignment) => assignment.sppg_id === response.active_sppg_id)?.roles ?? [];
-      router.push(resolveRoleHomeRoute(activeRoles));
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login gagal");
-    } finally {
-      setLoading(false);
+      legacyReady = legacyLogin.ok;
+    } catch {
+      legacyReady = false;
     }
+
+    if (legacyReady) {
+      router.push("/planning");
+      router.refresh();
+      setLoading(false);
+      return;
+    }
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+      callbackUrl: "/app/dashboard"
+    });
+
+    if (!result || result.error) {
+      setError("Login gagal. Cek email/password.");
+      setLoading(false);
+      return;
+    }
+
+    router.push(result.url ?? "/app/dashboard");
+    router.refresh();
+    setLoading(false);
   };
 
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        padding: "24px"
-      }}
-    >
-      <section className="card" style={{ width: "100%", maxWidth: 420 }}>
-        <div className="card-header">
-          <strong style={{ fontFamily: "var(--font-heading)", fontSize: 20, display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <LogIn size={18} />
-            MBG Ops Login
-          </strong>
-          <span className="status-badge status-neutral">SPPG</span>
-        </div>
-        <form className="card-body" onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-          <label>
-            Email
-            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </label>
-          <label>
-            Password
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          {error ? <div className="status-badge status-danger">{error}</div> : null}
-          <button className="btn btn-primary icon-btn" type="submit" disabled={loading}>
-            <KeyRound size={16} />
-            {loading ? "Memproses..." : "Masuk"}
-          </button>
-        </form>
-      </section>
+    <main className="container-app grid min-h-screen place-items-center py-8">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Masuk SPPG Ops</CardTitle>
+          <CardDescription>Gunakan akun tenant atau platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-3">
+            <div className="space-y-1">
+              <label htmlFor="login-email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input id="login-email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" required />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="login-password" className="text-sm font-medium">
+                Password
+              </label>
+              <Input id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" required />
+            </div>
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <Button disabled={loading} className="w-full" type="submit">
+              {loading ? "Memproses..." : "Masuk"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }
+

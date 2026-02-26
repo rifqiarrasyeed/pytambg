@@ -4,6 +4,13 @@
 - Backend API: `http://127.0.0.1:3000`
 - Frontend proxy: `/api/proxy/*`
 
+## Kompatibilitas Route Legacy (Frontend)
+Route lama tetap hidup sebagai redirect agar bookmark lama tidak putus:
+1. `/verification` -> `/delivery?tab=verification`
+2. `/disputes` -> `/delivery?tab=disputes`
+3. `/audit` -> `/reports?tab=audit`
+4. `/dashboard` -> `/planning`
+
 ## Error Envelope Baku
 ```json
 {
@@ -183,3 +190,12 @@ Filter tambahan:
 
 Contoh:
 `GET /audit-logs?entity_table=sessions_tokens&entity_id=<uuid>&action=ACTIVE_SPPG_SWITCH&page=1&page_size=20`
+
+## Catatan Runtime Session/Login Compatibility
+Untuk local-first compatibility, halaman login frontend mendukung:
+1. Jalur legacy token login via `/api/auth/login`.
+2. Fallback ke NextAuth Credentials jika jalur legacy gagal.
+
+Tujuan:
+1. Menjaga kompatibilitas backend lama.
+2. Menjaga transisi bertahap ke route handler full-stack tanpa memutus flow user.

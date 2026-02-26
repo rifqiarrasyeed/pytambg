@@ -4,8 +4,10 @@ dist/
 web/.env.local
 scripts/deploy/.env.local
 web/.next/
+web/.uploads/
 coverage/
 *.log
 tests/*.js
 playwright-report/
 test-results/
+*.tsbuildinfo

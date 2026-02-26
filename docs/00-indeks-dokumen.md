@@ -39,3 +39,9 @@ Dokumen ini menjadi pintu masuk utama untuk memahami sistem MBG Ops yang berjala
 - Fokus ke kualitas lokal end-to-end.
 - Deploy ke hosting/domain bukan bagian dokumen ini.
 
+## Baseline RC Terbaru
+- Branch: `feat/rc-local-audit-coverage`
+- Head freeze: `094b941`
+- Timestamp freeze: `2026-02-27 01:03:01 +07:00`
+- Dokumen acuan QA: `08-qa-uat-regression.md`
+- Gate acuan: `npm run qa:full` (wajib pass 2x berurutan)

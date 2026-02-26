@@ -1,46 +1,73 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { env } from "@/lib/core/env";
 import { ACCESS_COOKIE } from "@/lib/constants";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
-const LEGACY_REDIRECTS: Record<string, string> = {
-  "/dashboard": "/",
-  "/verification": "/delivery?tab=verification",
-  "/disputes": "/delivery?tab=disputes",
-  "/audit": "/reports?tab=audit",
-  "/settings": "/reports?tab=settings",
-  "/master-data": "/reports?tab=master",
-  "/sppg-admin": "/reports?tab=admin",
-  "/incidents": "/reports?tab=incidents"
-};
+const PUBLIC_PATHS = ["/", "/pricing", "/login"];
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/api/auth") || pathname.startsWith("/api/billing/midtrans/webhook");
+}
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/api/auth/login") ||
-    pathname.startsWith("/api/auth/logout") ||
-    pathname.startsWith("/api/auth/switch-sppg") ||
-    pathname.startsWith("/api/session")
-  ) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
     return NextResponse.next();
   }
 
-  const isPublic = PUBLIC_PATHS.some((path) => pathname === path);
-  const hasAccess = Boolean(request.cookies.get(ACCESS_COOKIE)?.value);
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
 
-  if (!hasAccess && !isPublic) {
+  if (pathname === "/verification") {
+    const target = new URL("/delivery", request.url);
+    target.searchParams.set("tab", "verification");
+    return NextResponse.redirect(target);
+  }
+  if (pathname === "/disputes") {
+    const target = new URL("/delivery", request.url);
+    target.searchParams.set("tab", "disputes");
+    return NextResponse.redirect(target);
+  }
+  if (pathname === "/audit") {
+    const target = new URL("/reports", request.url);
+    target.searchParams.set("tab", "audit");
+    return NextResponse.redirect(target);
+  }
+  if (pathname === "/dashboard") {
+    return NextResponse.redirect(new URL("/planning", request.url));
+  }
+
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const token = await getToken({ req: request, secret: env.NEXTAUTH_SECRET });
+
+  if (!token) {
+    const legacyAccess = request.cookies.get(ACCESS_COOKIE)?.value;
+    const legacyRoute = !pathname.startsWith("/app") && !pathname.startsWith("/platform");
+    if (legacyAccess && legacyRoute) {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (hasAccess && Object.prototype.hasOwnProperty.call(LEGACY_REDIRECTS, pathname)) {
-    return NextResponse.redirect(new URL(LEGACY_REDIRECTS[pathname], request.url));
+  if (pathname.startsWith("/platform")) {
+    const platformRoles = (token.platformRoles as string[] | undefined) ?? [];
+    const allowed = platformRoles.includes("PLATFORM_ADMIN") || platformRoles.includes("PLATFORM_OPS");
+    if (!allowed) {
+      return NextResponse.redirect(new URL("/app/dashboard", request.url));
+    }
   }
 
-  if (hasAccess && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (pathname.startsWith("/app")) {
+    const activeTenantId = request.cookies.get("mbg_active_tenant")?.value ?? (token.activeTenantId as string | undefined);
+    if (!activeTenantId) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   return NextResponse.next();

@@ -57,3 +57,4 @@ export async function GET() {
 
   return NextResponse.json({ authenticated: true, ...session.data, context: context.data });
 }
+

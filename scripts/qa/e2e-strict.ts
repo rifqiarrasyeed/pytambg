@@ -1,4 +1,5 @@
 import { execSync, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 
 const COMMAND = "npx playwright test";
 const blockedMarkers = [
@@ -25,10 +26,18 @@ function cleanupPorts(): void {
 
 cleanupPorts();
 
+const useProdServer = existsSync("dist/index.js") && existsSync("web/.next/BUILD_ID");
+if (!useProdServer) {
+  console.warn("[E2E STRICT] Build produksi tidak ditemukan, fallback ke dev server.");
+}
+
 const child = spawn(COMMAND, {
   shell: true,
   stdio: ["inherit", "pipe", "pipe"],
-  env: process.env
+  env: {
+    ...process.env,
+    E2E_USE_PROD: useProdServer ? "1" : "0"
+  }
 });
 
 let output = "";

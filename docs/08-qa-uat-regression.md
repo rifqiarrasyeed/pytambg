@@ -37,6 +37,8 @@ Troubleshooting cepat:
    - hentikan proses lama di port 3000/3001 lalu rerun.
 2. Stale process Playwright:
    - pastikan `playwright.config.ts` tetap `reuseExistingServer: false`.
+   - `e2e:strict` kini default menjalankan production server jika build tersedia (`dist/index.js` + `web/.next/BUILD_ID`).
+   - jika build belum ada, runner fallback otomatis ke mode dev.
 3. Date collision data UAT (plan/lock):
    - rerun dengan data fixture tanggal baru (helper `futureDateSafe` di `e2e/support.ts`).
 4. Backend proxy tidak reachable:
@@ -93,11 +95,15 @@ Troubleshooting cepat:
 - rekaman langkah UAT per role.
 
 ## 6) Evidence Freeze Baseline (Solo Operator)
-- Timestamp freeze: `2026-02-26 18:40:35 +07:00`
-- Branch kerja: `feat/hardening-sync-backend-db-rls`
+- Timestamp freeze: `2026-02-27 01:03:01 +07:00`
+- Branch kerja: `feat/rc-local-audit-coverage`
+- Commit head freeze: `094b941`
 - Hasil gate:
-  - `npm run deploy:db` -> pass
+  - `npm test` -> pass
+  - `npm run build` -> pass
+  - `npm run web:build` -> pass
   - `npm run deploy:db:assert` -> pass
+  - `npm run e2e:strict` -> pass
   - `npm run qa:full` -> pass run #1
   - `npm run qa:full` -> pass run #2
 - Artefak:

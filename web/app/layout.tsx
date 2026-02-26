@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
-import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { AppProviders } from "@/components/layout/app-providers";
 
-const bodyFont = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-body"
-});
-
-const headingFont = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-heading"
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MBG Ops SPPG",
-  description: "Operasional Dapur MBG multi-tenant audit-ready"
+  title: "SPPG Ops SaaS",
+  description: "SaaS operasional dapur SPPG multi-tenant dengan billing dan audit"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,22 +17,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html: `
-(() => {
-  try {
-    const key = "mbg-theme";
-    const stored = window.localStorage.getItem(key);
-    const mode = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
-    const resolved = mode === "system"
-      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-      : mode;
-    document.documentElement.setAttribute("data-theme", resolved);
-  } catch (_) {}
+(function () {
+  const saved = localStorage.getItem('mbg-theme') || 'system';
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const mode = saved === 'system' ? (systemDark ? 'dark' : 'light') : saved;
+  document.documentElement.classList.toggle('dark', mode === 'dark');
 })();
 `
           }}
         />
       </head>
-      <body className={`${bodyFont.variable} ${headingFont.variable}`}>{children}</body>
+      <body className={inter.className}>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
