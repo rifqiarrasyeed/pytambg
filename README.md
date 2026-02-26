@@ -229,3 +229,23 @@ Baseline ini adalah snapshot lokal yang sudah lolos gate kualitas penuh untuk op
 - Port lokal standar:
   - backend `http://127.0.0.1:3000`
   - frontend `http://127.0.0.1:3001`
+
+## Audit Coverage RC
+Fase RC lokal menambah observability audit coverage tanpa memecah kontrak endpoint bisnis.
+
+### Verifikasi cepat
+1. Jalankan:
+```bash
+npm run deploy:db
+npm run deploy:db:assert
+npm run qa:full
+```
+2. Cek endpoint:
+- `GET /qa/health-integrity?audit_window_hours=24&include_samples=true&sample_limit=5`
+- `GET /audit-logs?entity_table=sessions_tokens&action=ACTIVE_SPPG_SWITCH`
+
+### Tambahan perilaku audit
+1. `POST /me/active-sppg` kini menulis audit event `ACTIVE_SPPG_SWITCH`.
+2. `GET /audit-logs` mendukung filter tambahan:
+- `entity_id=<uuid>`
+- `action=<ACTION_CODE>`

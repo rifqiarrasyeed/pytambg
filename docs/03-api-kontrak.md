@@ -123,7 +123,7 @@ Response:
 - `POST /reports/export`
 - `GET /reports/jobs`
 - `GET /reports/jobs/:id`
-- `GET /qa/health-integrity` (ringkasan health RLS/policy/trigger/ledger)
+- `GET /qa/health-integrity` (ringkasan health RLS/policy/trigger/ledger + audit coverage)
 - `GET /period-locks`
 - `POST /period-locks/:date/lock`
 - `POST /period-locks/:date/unlock`
@@ -146,3 +146,40 @@ Wajib untuk:
 Perilaku:
 - key sama + payload sama -> replay respons sebelumnya.
 - key sama + payload beda -> `409 IDEMPOTENCY_CONFLICT`.
+
+## Tambahan Kontrak RC Audit Coverage
+### `GET /qa/health-integrity`
+Query optional:
+- `audit_window_hours` (default `24`, min `1`, max `168`)
+- `include_samples` (`true|false`, default `false`)
+- `sample_limit` (default `10`, max `50`)
+
+Tambahan response:
+```json
+{
+  "ok": true,
+  "scope_sppg_id": "uuid",
+  "audit_window_hours": 24,
+  "checks": {
+    "audit_create_gap_count": 0,
+    "audit_update_gap_count": 0,
+    "audit_missing_request_id_count": 0,
+    "audit_missing_actor_meta_count": 0
+  },
+  "samples": {
+    "audit_create_gap": [],
+    "audit_update_gap": [],
+    "audit_missing_request_id": [],
+    "audit_missing_actor_meta": []
+  }
+}
+```
+Catatan: field `samples` hanya dikirim jika `include_samples=true`.
+
+### `GET /audit-logs`
+Filter tambahan:
+- `entity_id=<uuid>`
+- `action=<ACTION_CODE>`
+
+Contoh:
+`GET /audit-logs?entity_table=sessions_tokens&entity_id=<uuid>&action=ACTIVE_SPPG_SWITCH&page=1&page_size=20`

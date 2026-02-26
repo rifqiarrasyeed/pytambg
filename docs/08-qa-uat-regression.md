@@ -70,6 +70,13 @@ Troubleshooting cepat:
 25. Unlock tanpa reason ditolak.
 26. Signed URL lintas tenant ditolak.
 27. Audit mutasi kritikal lengkap old/new + actor metadata.
+28. `POST /me/active-sppg` menghasilkan audit `ACTIVE_SPPG_SWITCH`.
+29. `GET /qa/health-integrity` menampilkan metrik audit coverage:
+   - `audit_create_gap_count`
+   - `audit_update_gap_count`
+   - `audit_missing_request_id_count`
+   - `audit_missing_actor_meta_count`
+30. `GET /audit-logs` filter `entity_id` + `action` berjalan benar.
 
 ## 4) UAT Flow End-to-End
 1. Planning -> Procurement -> Receiving.

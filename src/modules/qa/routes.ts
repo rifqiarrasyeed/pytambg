@@ -3,6 +3,7 @@ import { query } from "../../db/pool";
 import { requireActiveSppg, requirePermission } from "../../policies/guards";
 import { PERMISSIONS } from "../../types";
 import { badRequest } from "../../utils/api-error";
+import { parseHealthIntegrityQuery } from "./health-integrity-query";
 
 const protectedTables = [
   "sppg",
@@ -121,6 +122,77 @@ const requiredTenantConstraints = [
   "fk_reports_jobs_attachment_tenant"
 ] as const;
 
+const authLifecycleActions = ["LOGIN_SUCCESS", "TOKEN_REFRESH", "LOGOUT"] as const;
+
+type GapSampleRow = {
+  entity_table: string;
+  entity_id: string;
+  occurred_at: string;
+  reason: string;
+};
+
+const criticalEntityCoverageSql = `
+  SELECT 'menu_plans'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM menu_plans
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'purchases'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM purchases
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'receipts'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM receipts
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'stock_moves'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM stock_moves
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'stock_opnames'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM stock_opnames
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'production_runs'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM production_runs
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'deliveries'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM deliveries
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'delivery_stops'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM delivery_stops
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'disputes'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM disputes
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'period_locks'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM period_locks
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'reports_jobs'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM reports_jobs
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+  UNION ALL
+  SELECT 'attachments'::text AS entity_table, id AS entity_id, created_at, updated_at
+  FROM attachments
+  WHERE sppg_id = $1
+    AND (created_at >= now() - make_interval(hours => $2) OR updated_at >= now() - make_interval(hours => $2))
+`;
+
 export async function qaRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/qa/health-integrity",
@@ -131,6 +203,7 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
       if (!activeSppgId) {
         throw badRequest("ACTIVE_SPPG_REQUIRED", "Pilih active SPPG untuk cek integrity tenant");
       }
+      const options = parseHealthIntegrityQuery(request.query);
 
       const [
         rlsMissing,
@@ -139,6 +212,10 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         triggerMissing,
         forceRlsMissing,
         tenantConstraintMissing,
+        auditCreateGap,
+        auditUpdateGap,
+        auditMissingRequestId,
+        auditMissingActorMeta,
         stockDelta,
         attachmentMismatch
       ] = await Promise.all([
@@ -211,6 +288,70 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         ),
         query<{ count: string }>(
           `
+            WITH critical_entities AS (
+              ${criticalEntityCoverageSql}
+            )
+            SELECT COUNT(*)::text AS count
+            FROM critical_entities ce
+            WHERE ce.created_at >= now() - make_interval(hours => $2)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM audit_logs al
+                WHERE al.sppg_id = $1
+                  AND al.entity_table = ce.entity_table
+                  AND al.entity_id = ce.entity_id
+                  AND al.occurred_at BETWEEN ce.created_at - interval '10 minute' AND ce.created_at + interval '10 minute'
+              )
+          `,
+          [activeSppgId, options.audit_window_hours]
+        ),
+        query<{ count: string }>(
+          `
+            WITH critical_entities AS (
+              ${criticalEntityCoverageSql}
+            )
+            SELECT COUNT(*)::text AS count
+            FROM critical_entities ce
+            WHERE ce.updated_at > ce.created_at
+              AND ce.updated_at >= now() - make_interval(hours => $2)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM audit_logs al
+                WHERE al.sppg_id = $1
+                  AND al.entity_table = ce.entity_table
+                  AND al.entity_id = ce.entity_id
+                  AND al.occurred_at BETWEEN ce.updated_at - interval '10 minute' AND ce.updated_at + interval '10 minute'
+              )
+          `,
+          [activeSppgId, options.audit_window_hours]
+        ),
+        query<{ count: string }>(
+          `
+            SELECT COUNT(*)::text AS count
+            FROM audit_logs
+            WHERE sppg_id = $1
+              AND occurred_at >= now() - make_interval(hours => $2)
+              AND action <> ALL($3::text[])
+              AND (request_id IS NULL OR btrim(request_id) = '')
+          `,
+          [activeSppgId, options.audit_window_hours, authLifecycleActions]
+        ),
+        query<{ count: string }>(
+          `
+            SELECT COUNT(*)::text AS count
+            FROM audit_logs
+            WHERE sppg_id = $1
+              AND occurred_at >= now() - make_interval(hours => $2)
+              AND (
+                actor_user_id IS NULL
+                OR actor_role IS NULL
+                OR btrim(actor_role) = ''
+              )
+          `,
+          [activeSppgId, options.audit_window_hours]
+        ),
+        query<{ count: string }>(
+          `
             WITH ledger AS (
               SELECT
                 sppg_id,
@@ -251,16 +392,131 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         required_trigger_missing_count: Number(triggerMissing.rows[0]?.count ?? 0),
         force_rls_missing_count: Number(forceRlsMissing.rows[0]?.count ?? 0),
         tenant_constraint_missing_count: Number(tenantConstraintMissing.rows[0]?.count ?? 0),
+        audit_create_gap_count: Number(auditCreateGap.rows[0]?.count ?? 0),
+        audit_update_gap_count: Number(auditUpdateGap.rows[0]?.count ?? 0),
+        audit_missing_request_id_count: Number(auditMissingRequestId.rows[0]?.count ?? 0),
+        audit_missing_actor_meta_count: Number(auditMissingActorMeta.rows[0]?.count ?? 0),
         stock_mv_mismatch_count: Number(stockDelta.rows[0]?.count ?? 0),
         attachment_tenant_mismatch_count: Number(attachmentMismatch.rows[0]?.count ?? 0)
       };
       const ok = Object.values(report).every((value) => value === 0);
 
+      let samples:
+        | {
+            audit_create_gap: GapSampleRow[];
+            audit_update_gap: GapSampleRow[];
+            audit_missing_request_id: GapSampleRow[];
+            audit_missing_actor_meta: GapSampleRow[];
+          }
+        | undefined;
+
+      if (options.include_samples) {
+        const [createGapSamples, updateGapSamples, missingRequestIdSamples, missingActorMetaSamples] = await Promise.all([
+          query<GapSampleRow>(
+            `
+              WITH critical_entities AS (
+                ${criticalEntityCoverageSql}
+              )
+              SELECT
+                ce.entity_table,
+                ce.entity_id::text AS entity_id,
+                ce.created_at::text AS occurred_at,
+                'MISSING_CREATE_AUDIT'::text AS reason
+              FROM critical_entities ce
+              WHERE ce.created_at >= now() - make_interval(hours => $2)
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM audit_logs al
+                  WHERE al.sppg_id = $1
+                    AND al.entity_table = ce.entity_table
+                    AND al.entity_id = ce.entity_id
+                    AND al.occurred_at BETWEEN ce.created_at - interval '10 minute' AND ce.created_at + interval '10 minute'
+                )
+              ORDER BY ce.created_at DESC
+              LIMIT $3
+            `,
+            [activeSppgId, options.audit_window_hours, options.sample_limit]
+          ),
+          query<GapSampleRow>(
+            `
+              WITH critical_entities AS (
+                ${criticalEntityCoverageSql}
+              )
+              SELECT
+                ce.entity_table,
+                ce.entity_id::text AS entity_id,
+                ce.updated_at::text AS occurred_at,
+                'MISSING_UPDATE_AUDIT'::text AS reason
+              FROM critical_entities ce
+              WHERE ce.updated_at > ce.created_at
+                AND ce.updated_at >= now() - make_interval(hours => $2)
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM audit_logs al
+                  WHERE al.sppg_id = $1
+                    AND al.entity_table = ce.entity_table
+                    AND al.entity_id = ce.entity_id
+                    AND al.occurred_at BETWEEN ce.updated_at - interval '10 minute' AND ce.updated_at + interval '10 minute'
+                )
+              ORDER BY ce.updated_at DESC
+              LIMIT $3
+            `,
+            [activeSppgId, options.audit_window_hours, options.sample_limit]
+          ),
+          query<GapSampleRow>(
+            `
+              SELECT
+                entity_table,
+                entity_id::text AS entity_id,
+                occurred_at::text AS occurred_at,
+                'MISSING_REQUEST_ID'::text AS reason
+              FROM audit_logs
+              WHERE sppg_id = $1
+                AND occurred_at >= now() - make_interval(hours => $2)
+                AND action <> ALL($3::text[])
+                AND (request_id IS NULL OR btrim(request_id) = '')
+              ORDER BY occurred_at DESC
+              LIMIT $4
+            `,
+            [activeSppgId, options.audit_window_hours, authLifecycleActions, options.sample_limit]
+          ),
+          query<GapSampleRow>(
+            `
+              SELECT
+                entity_table,
+                entity_id::text AS entity_id,
+                occurred_at::text AS occurred_at,
+                'MISSING_ACTOR_META'::text AS reason
+              FROM audit_logs
+              WHERE sppg_id = $1
+                AND occurred_at >= now() - make_interval(hours => $2)
+                AND (
+                  actor_user_id IS NULL
+                  OR actor_role IS NULL
+                  OR btrim(actor_role) = ''
+                )
+              ORDER BY occurred_at DESC
+              LIMIT $3
+            `,
+            [activeSppgId, options.audit_window_hours, options.sample_limit]
+          )
+        ]);
+
+        samples = {
+          audit_create_gap: createGapSamples.rows,
+          audit_update_gap: updateGapSamples.rows,
+          audit_missing_request_id: missingRequestIdSamples.rows,
+          audit_missing_actor_meta: missingActorMetaSamples.rows
+        };
+      }
+
       return reply.send({
         ok,
         scope_sppg_id: activeSppgId,
+        audit_window_hours: options.audit_window_hours,
         checks: report,
-        checked_at: new Date().toISOString()
+        checked_at: new Date().toISOString(),
+        ...(samples ? { samples } : {})
       });
     }
   );

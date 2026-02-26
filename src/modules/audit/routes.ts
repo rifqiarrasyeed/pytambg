@@ -1,19 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { z } from "zod";
 import { query } from "../../db/pool";
 import { requirePermission, requireActiveSppg } from "../../policies/guards";
 import { PERMISSIONS } from "../../types";
 import { unprocessable } from "../../utils/api-error";
 import { buildPagingMeta, parseListQuery } from "../../utils/pagination";
 import { resolveOrderBy } from "../../utils/sorting";
-
-const filterSchema = z.object({
-  entity_table: z.string().optional(),
-  actor_user_id: z.string().uuid().optional(),
-  start_at: z.string().datetime().optional(),
-  end_at: z.string().datetime().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional()
-});
+import { parseAuditLogFilter } from "./audit-log-filter";
 
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -22,7 +14,7 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       requirePermission(request, PERMISSIONS.AUDIT_VIEW);
       const sppgId = requireActiveSppg(request);
-      const queryParams = filterSchema.parse(request.query);
+      const queryParams = parseAuditLogFilter(request.query);
       const list = parseListQuery(request.query);
       const pageSize = queryParams.limit ?? list.page_size;
       const order = resolveOrderBy({
@@ -46,13 +38,17 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
           FROM audit_logs
           WHERE sppg_id = $1
             AND ($2::text IS NULL OR entity_table = $2)
-            AND ($3::uuid IS NULL OR actor_user_id = $3)
-            AND ($4::timestamptz IS NULL OR occurred_at >= $4::timestamptz)
-            AND ($5::timestamptz IS NULL OR occurred_at <= $5::timestamptz)
+            AND ($3::uuid IS NULL OR entity_id = $3)
+            AND ($4::text IS NULL OR action = $4)
+            AND ($5::uuid IS NULL OR actor_user_id = $5)
+            AND ($6::timestamptz IS NULL OR occurred_at >= $6::timestamptz)
+            AND ($7::timestamptz IS NULL OR occurred_at <= $7::timestamptz)
         `,
         [
           sppgId,
           queryParams.entity_table ?? null,
+          queryParams.entity_id ?? null,
+          queryParams.action ?? null,
           queryParams.actor_user_id ?? null,
           queryParams.start_at ?? null,
           queryParams.end_at ?? null
@@ -78,15 +74,19 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
           FROM audit_logs
           WHERE sppg_id = $1
             AND ($2::text IS NULL OR entity_table = $2)
-            AND ($3::uuid IS NULL OR actor_user_id = $3)
-            AND ($4::timestamptz IS NULL OR occurred_at >= $4::timestamptz)
-            AND ($5::timestamptz IS NULL OR occurred_at <= $5::timestamptz)
+            AND ($3::uuid IS NULL OR entity_id = $3)
+            AND ($4::text IS NULL OR action = $4)
+            AND ($5::uuid IS NULL OR actor_user_id = $5)
+            AND ($6::timestamptz IS NULL OR occurred_at >= $6::timestamptz)
+            AND ($7::timestamptz IS NULL OR occurred_at <= $7::timestamptz)
           ORDER BY ${order.sql}
-          LIMIT $6 OFFSET $7
+          LIMIT $8 OFFSET $9
         `,
         [
           sppgId,
           queryParams.entity_table ?? null,
+          queryParams.entity_id ?? null,
+          queryParams.action ?? null,
           queryParams.actor_user_id ?? null,
           queryParams.start_at ?? null,
           queryParams.end_at ?? null,

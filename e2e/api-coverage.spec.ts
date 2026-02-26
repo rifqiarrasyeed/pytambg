@@ -153,13 +153,88 @@ test("proof delivery tanpa attachment ditolak validasi", async ({ request }) => 
 
 test("qa health-integrity endpoint bisa diakses auditor/superadmin", async ({ request }) => {
   const auth = await loginAs(request, "superadmin");
-  const response = await request.get(`${API_BASE}/qa/health-integrity`, {
+  const response = await request.get(
+    `${API_BASE}/qa/health-integrity?audit_window_hours=24&include_samples=true&sample_limit=5`,
+    {
+      headers: authHeaders(auth.access_token)
+    }
+  );
+  expect(response.status(), await response.text()).toBe(200);
+  const body = (await response.json()) as {
+    ok: boolean;
+    audit_window_hours: number;
+    checks: Record<string, number>;
+    samples?: Record<string, Array<unknown>>;
+  };
+  expect(typeof body.ok).toBe("boolean");
+  expect(body.audit_window_hours).toBe(24);
+  expect(typeof body.checks).toBe("object");
+  expect(typeof body.checks.audit_create_gap_count).toBe("number");
+  expect(typeof body.checks.audit_update_gap_count).toBe("number");
+  expect(typeof body.checks.audit_missing_request_id_count).toBe("number");
+  expect(typeof body.checks.audit_missing_actor_meta_count).toBe("number");
+  expect(body.samples).toBeTruthy();
+});
+
+test("switch active_sppg menghasilkan audit ACTIVE_SPPG_SWITCH", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const headers = authHeaders(auth.access_token);
+
+  const mySppgRes = await request.get(`${API_BASE}/me/sppg`, { headers });
+  expect(mySppgRes.status(), await mySppgRes.text()).toBe(200);
+  const mySppg = (await mySppgRes.json()) as { assignments: Array<{ sppg_id: string }> };
+  expect(mySppg.assignments.length).toBeGreaterThan(0);
+
+  const switchRes = await request.post(`${API_BASE}/me/active-sppg`, {
     headers: authHeaders(auth.access_token)
   });
-  expect(response.status(), await response.text()).toBe(200);
-  const body = (await response.json()) as { ok: boolean; checks: Record<string, number> };
-  expect(typeof body.ok).toBe("boolean");
-  expect(typeof body.checks).toBe("object");
+  expect(switchRes.status(), await switchRes.text()).toBe(422);
+
+  const switchOkRes = await request.post(`${API_BASE}/me/active-sppg`, {
+    headers,
+    data: { sppg_id: mySppg.assignments[0].sppg_id }
+  });
+  expect(switchOkRes.status(), await switchOkRes.text()).toBe(200);
+
+  const auditRes = await request.get(
+    `${API_BASE}/audit-logs?entity_table=sessions_tokens&action=ACTIVE_SPPG_SWITCH&page=1&page_size=20`,
+    { headers }
+  );
+  expect(auditRes.status(), await auditRes.text()).toBe(200);
+  const auditBody = (await auditRes.json()) as {
+    data: Array<{ action: string; entity_table: string; old_value: Record<string, unknown>; new_value: Record<string, unknown> }>;
+  };
+  expect(auditBody.data.length).toBeGreaterThan(0);
+  const row = auditBody.data[0];
+  expect(row.action).toBe("ACTIVE_SPPG_SWITCH");
+  expect(row.entity_table).toBe("sessions_tokens");
+  expect(typeof row.old_value).toBe("object");
+  expect(typeof row.new_value).toBe("object");
+});
+
+test("filter audit-logs by entity_id dan action berjalan", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const headers = authHeaders(auth.access_token);
+
+  const contextRes = await request.get(`${API_BASE}/me/context`, { headers });
+  expect(contextRes.status(), await contextRes.text()).toBe(200);
+  const context = (await contextRes.json()) as { user: { id: string } };
+
+  const auditRes = await request.get(
+    `${API_BASE}/audit-logs?entity_table=sessions_tokens&entity_id=${context.user.id}&action=LOGIN_SUCCESS&page=1&page_size=20`,
+    { headers }
+  );
+  expect(auditRes.status(), await auditRes.text()).toBe(200);
+  const body = (await auditRes.json()) as {
+    data: Array<{ entity_table: string; entity_id: string; action: string }>;
+  };
+
+  expect(body.data.length).toBeGreaterThan(0);
+  for (const row of body.data) {
+    expect(row.entity_table).toBe("sessions_tokens");
+    expect(row.entity_id).toBe(context.user.id);
+    expect(row.action).toBe("LOGIN_SUCCESS");
+  }
 });
 
 test("workspace summary/alerts/kpi tersedia untuk laporan harian", async ({ request }) => {
