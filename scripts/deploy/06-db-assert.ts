@@ -61,7 +61,15 @@ function required(name: string): string {
   "reports_jobs"
   ];
 
-const forceRlsTables = ["audit_logs", "stock_moves", "attachments", "entity_attachments", "delivery_proofs"];
+const forceRlsTables = [
+  "audit_logs",
+  "stock_moves",
+  "attachments",
+  "entity_attachments",
+  "delivery_proofs",
+  "reports_jobs",
+  "idempotency_keys"
+];
 
 const criticalTenancyTables = [
   "menu_plans",
@@ -91,6 +99,54 @@ const criticalTenancyTables = [
   "period_locks"
 ];
 
+const requiredTenantConstraints = [
+  "fk_plan_items_menu_plan_tenant",
+  "fk_plan_items_school_tenant",
+  "fk_plan_items_recipe_tenant",
+  "fk_purchase_items_purchase_tenant",
+  "fk_purchase_items_item_tenant",
+  "fk_receipts_purchase_tenant",
+  "fk_receipt_items_receipt_tenant",
+  "fk_receipt_items_purchase_item_tenant",
+  "fk_inventory_batches_item_tenant",
+  "fk_inventory_batches_receipt_item_tenant",
+  "fk_stock_moves_item_tenant",
+  "fk_stock_moves_batch_tenant",
+  "fk_stock_moves_uom_tenant",
+  "fk_stock_opname_lines_opname_tenant",
+  "fk_stock_opname_lines_item_tenant",
+  "fk_stock_opname_lines_batch_tenant",
+  "fk_production_runs_menu_plan_tenant",
+  "fk_production_inputs_run_tenant",
+  "fk_production_inputs_stock_move_tenant",
+  "fk_production_inputs_item_tenant",
+  "fk_production_outputs_run_tenant",
+  "fk_production_outputs_school_tenant",
+  "fk_production_outputs_recipe_tenant",
+  "fk_qc_checks_run_tenant",
+  "fk_qc_checks_attachment_tenant",
+  "fk_packing_lines_run_tenant",
+  "fk_packing_lines_school_tenant",
+  "fk_deliveries_route_tenant",
+  "fk_delivery_stops_delivery_tenant",
+  "fk_delivery_stops_school_tenant",
+  "fk_delivery_items_stop_tenant",
+  "fk_delivery_items_packing_tenant",
+  "fk_delivery_proofs_stop_tenant",
+  "fk_delivery_proofs_attachment_tenant",
+  "fk_disputes_stop_tenant",
+  "fk_route_schools_route_tenant",
+  "fk_route_schools_school_tenant",
+  "fk_school_user_access_school_tenant",
+  "fk_recipe_items_recipe_tenant",
+  "fk_recipe_items_item_tenant",
+  "fk_vendor_invoices_vendor_tenant",
+  "fk_entity_attachments_attachment_tenant",
+  "fk_waste_events_item_tenant",
+  "fk_waste_events_batch_tenant",
+  "fk_reports_jobs_attachment_tenant"
+];
+
 function assertEmpty(rows: unknown[], message: string): void {
   if (rows.length > 0) {
     const preview = JSON.stringify(rows.slice(0, 10));
@@ -103,6 +159,37 @@ async function main(): Promise<void> {
   await client.connect();
 
   try {
+    const existingTables = await client.query<{ table_name: string }>(
+      `
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE'
+      `
+    );
+    const existingSet = new Set(existingTables.rows.map((row) => row.table_name));
+
+    const staleProtected = protectedTables.filter((tableName) => !existingSet.has(tableName));
+    assertEmpty(staleProtected.map((table_name) => ({ table_name })), "Ada protected table di checker yang tidak ada di schema");
+
+    const tenantTables = await client.query<{ table_name: string }>(
+      `
+        SELECT DISTINCT table_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND column_name = 'sppg_id'
+          AND table_name <> 'stock_balances_mv'
+      `
+    );
+    const protectedSet = new Set(protectedTables);
+    const missingProtected = tenantTables.rows
+      .map((row) => row.table_name)
+      .filter((tableName) => !protectedSet.has(tableName));
+    assertEmpty(
+      missingProtected.map((table_name) => ({ table_name })),
+      "Ada tabel tenancy (punya sppg_id) yang belum masuk protected checker"
+    );
+
     const missingRls = await client.query<{ table_name: string }>(
       `
         WITH t AS (SELECT unnest($1::text[]) AS table_name)
@@ -205,6 +292,24 @@ async function main(): Promise<void> {
       [criticalTenancyTables]
     );
     assertEmpty(missingSppgColumn.rows, "Masih ada tabel transaksi tanpa kolom sppg_id");
+
+    const constraintRows = await client.query<{ conname: string; convalidated: boolean }>(
+      `
+        SELECT conname, convalidated
+        FROM pg_constraint
+        WHERE conname = ANY($1::text[])
+      `,
+      [requiredTenantConstraints]
+    );
+    const constraintMap = new Map(constraintRows.rows.map((row) => [row.conname, row.convalidated]));
+    for (const constraint of requiredTenantConstraints) {
+      if (!constraintMap.has(constraint)) {
+        throw new Error(`Constraint tenant wajib belum ada: ${constraint}`);
+      }
+      if (constraintMap.get(constraint) !== true) {
+        throw new Error(`Constraint tenant wajib belum validated: ${constraint}`);
+      }
+    }
 
     const mismatchedAttachmentLinks = await client.query(
       `

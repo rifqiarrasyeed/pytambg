@@ -26,7 +26,9 @@
     "web:build": "npm --prefix web run build",
     "web:start": "npm --prefix web run start",
     "e2e": "playwright test",
-    "qa:full": "npm test && npm run build && npm run web:build && npm run deploy:db:assert && npm run e2e"
+    "e2e:strict": "tsx scripts/qa/e2e-strict.ts",
+    "qa:quick": "npm test && npm run build && npm run deploy:db:assert",
+    "qa:full": "npm test && npm run build && npm run web:build && npm run deploy:db:assert && npm run e2e:strict"
   },
   "keywords": [
     "mbg",

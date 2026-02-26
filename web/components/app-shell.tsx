@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Boxes, ClipboardCheck, Factory, FileText, History, LayoutDashboard, Route, Settings2, Shield, Siren, Truck, UsersRound, UtensilsCrossed } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Boxes, Factory, FileText, Shield, Truck, UtensilsCrossed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/lib/api-client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { apiClient } from "@/lib/api-client";
+import { resolveAllowedDeliveryTab, resolveAllowedReportsTab, resolveRoleHomeRoute, roleHasMainRouteAccess, type MainRoute } from "@/lib/navigation";
 
 type Assignment = { sppg_id: string; sppg_code: string; sppg_name: string; roles: string[]; is_default: boolean };
 
@@ -17,44 +18,55 @@ type AppShellProps = {
 
 type NavItem = {
   href: string;
-  label: string;
-  section: "operasional" | "master" | "kontrol";
+  label: "Planning" | "Procurement" | "Inventory" | "Produksi" | "Distribusi" | "Laporan";
   roles: string[];
-  permissions: string[];
   icon: React.ComponentType<{ size?: number }>;
 };
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "AUDITOR_VIEWER"], permissions: ["report.view"], icon: LayoutDashboard },
-  { href: "/planning", label: "Planning", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "NUTRITIONIST"], permissions: ["planning.write", "planning.approve"], icon: UtensilsCrossed },
-  { href: "/procurement", label: "Procurement", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY"], permissions: ["procurement.write", "procurement.approve", "receipt.post"], icon: FileText },
-  { href: "/inventory", label: "Inventory", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY"], permissions: ["inventory.write", "inventory.approve"], icon: Boxes },
-  { href: "/production", label: "Production", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "KITCHEN_PRODUCTION"], permissions: ["production.write", "production.finalize"], icon: Factory },
-  { href: "/delivery", label: "Delivery", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "DRIVER"], permissions: ["delivery.manage", "delivery.update_status"], icon: Truck },
-  { href: "/verification", label: "Verification", section: "operasional", roles: ["SUPER_ADMIN", "SCHOOL_VERIFIER"], permissions: ["delivery.verify"], icon: ClipboardCheck },
-  { href: "/disputes", label: "Disputes", section: "operasional", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "SCHOOL_VERIFIER"], permissions: ["dispute.manage"], icon: Shield },
-
-  { href: "/master-data", label: "Master Data", section: "master", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY", "NUTRITIONIST"], permissions: ["master.read", "master.write"], icon: Route },
-  { href: "/sppg-admin", label: "Admin Pusat", section: "master", roles: ["SUPER_ADMIN"], permissions: ["sppg.manage", "assignment.manage"], icon: UsersRound },
-  { href: "/settings", label: "Settings", section: "master", roles: ["SUPER_ADMIN", "ADMIN_SPPG"], permissions: ["master.write"], icon: Settings2 },
-
-  { href: "/reports", label: "Reports", section: "kontrol", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "AUDITOR_VIEWER"], permissions: ["report.view"], icon: FileText },
-  { href: "/audit", label: "Audit", section: "kontrol", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "AUDITOR_VIEWER"], permissions: ["audit.view"], icon: History },
-  { href: "/incidents", label: "Incident/Waste", section: "kontrol", roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY"], permissions: ["inventory.write", "delivery.manage"], icon: Siren }
+  {
+    href: "/planning",
+    label: "Planning",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "NUTRITIONIST", "KITCHEN_PRODUCTION"],
+    icon: UtensilsCrossed
+  },
+  {
+    href: "/procurement",
+    label: "Procurement",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY"],
+    icon: FileText
+  },
+  {
+    href: "/inventory",
+    label: "Inventory",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "INVENTORY"],
+    icon: Boxes
+  },
+  {
+    href: "/production",
+    label: "Produksi",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "KITCHEN_PRODUCTION", "NUTRITIONIST"],
+    icon: Factory
+  },
+  {
+    href: "/delivery",
+    label: "Distribusi",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "DRIVER", "SCHOOL_VERIFIER", "KITCHEN_PRODUCTION"],
+    icon: Truck
+  },
+  {
+    href: "/reports",
+    label: "Laporan",
+    roles: ["SUPER_ADMIN", "ADMIN_SPPG", "AUDITOR_VIEWER", "NUTRITIONIST", "INVENTORY", "KITCHEN_PRODUCTION"],
+    icon: Shield
+  }
 ];
-
-function sectionTitle(section: NavItem["section"]): string {
-  if (section === "operasional") return "Operasional";
-  if (section === "master") return "Master";
-  return "Kontrol & Audit";
-}
 
 export function AppShell({ assignments, activeSppgId, children }: AppShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [switching, setSwitching] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [permissions, setPermissions] = useState<string[] | null>(null);
 
   const currentRoles = useMemo(() => {
     const found = assignments.find((item) => item.sppg_id === activeSppgId);
@@ -62,42 +74,13 @@ export function AppShell({ assignments, activeSppgId, children }: AppShellProps)
   }, [assignments, activeSppgId]);
 
   const visibleNav = useMemo(() => {
-    const byRole = currentRoles.includes("SUPER_ADMIN")
-      ? navItems
-      : navItems.filter((item) => item.roles.some((role) => currentRoles.includes(role)));
-    if (!permissions || currentRoles.includes("SUPER_ADMIN")) {
-      return byRole;
+    if (currentRoles.includes("SUPER_ADMIN")) {
+      return navItems;
     }
-    return byRole.filter((item) => item.permissions.length === 0 || item.permissions.some((perm) => permissions.includes(perm)));
-  }, [currentRoles, permissions]);
-
-  const navBySection = useMemo(() => {
-    const grouped: Record<NavItem["section"], NavItem[]> = { operasional: [], master: [], kontrol: [] };
-    for (const item of visibleNav) {
-      grouped[item.section].push(item);
-    }
-    return grouped;
-  }, [visibleNav]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadContext = async () => {
-      try {
-        const session = await apiClient<{ context?: { permissions?: string[] } }>("/api/session");
-        if (mounted) {
-          setPermissions(session.context?.permissions ?? null);
-        }
-      } catch {
-        if (mounted) {
-          setPermissions(null);
-        }
-      }
-    };
-    void loadContext();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    return navItems.filter((item) => item.roles.some((role) => currentRoles.includes(role)));
+  }, [currentRoles]);
+  const homeRoute = useMemo(() => resolveRoleHomeRoute(currentRoles), [currentRoles]);
+  const activeAssignment = useMemo(() => assignments.find((item) => item.sppg_id === activeSppgId) ?? null, [activeSppgId, assignments]);
 
   useEffect(() => {
     const tableSelector = "table.table";
@@ -126,19 +109,40 @@ export function AppShell({ assignments, activeSppgId, children }: AppShellProps)
     return () => observer.disconnect();
   }, [pathname]);
 
-  const switchTenant = async (sppgId: string) => {
-    setSwitching(true);
-    try {
-      await apiClient("/api/auth/switch-sppg", {
-        method: "POST",
-        body: JSON.stringify({ sppg_id: sppgId })
-      });
-      router.refresh();
-    } finally {
-      setSwitching(false);
-      setMenuOpen(false);
+  useEffect(() => {
+    if (!pathname) {
+      return;
     }
-  };
+
+    const mainRoutes: MainRoute[] = ["/planning", "/procurement", "/inventory", "/production", "/delivery", "/reports"];
+    if (!mainRoutes.includes(pathname as MainRoute)) {
+      return;
+    }
+
+    if (!roleHasMainRouteAccess(currentRoles, pathname as MainRoute)) {
+      if (pathname !== homeRoute) {
+        router.replace(homeRoute);
+      }
+      return;
+    }
+
+    if (pathname === "/delivery") {
+      const requestedTab = searchParams.get("tab");
+      const allowedTab = resolveAllowedDeliveryTab(currentRoles, requestedTab);
+      if (requestedTab !== allowedTab) {
+        router.replace(`/delivery?tab=${allowedTab}`);
+      }
+      return;
+    }
+
+    if (pathname === "/reports") {
+      const requestedTab = searchParams.get("tab");
+      const allowedTab = resolveAllowedReportsTab(currentRoles, requestedTab);
+      if (requestedTab !== allowedTab) {
+        router.replace(`/reports?tab=${allowedTab}`);
+      }
+    }
+  }, [currentRoles, homeRoute, pathname, router, searchParams]);
 
   const logout = async () => {
     await apiClient("/api/auth/logout", { method: "POST" });
@@ -155,46 +159,36 @@ export function AppShell({ assignments, activeSppgId, children }: AppShellProps)
       <aside className={`app-sidebar ${menuOpen ? "open" : ""}`}>
         <div className="sidebar-title">
           <strong>MBG Ops</strong>
-          <small>Industrial Kitchen Console</small>
+          <small>Operasional Dapur SPPG</small>
         </div>
 
         <div className="panel">
           <div className="panel-body" style={{ display: "grid", gap: 8 }}>
-            <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", fontWeight: 700 }}>SPPG Aktif</label>
-            <select
-              className="select"
-              value={activeSppgId ?? ""}
-              onChange={(event) => switchTenant(event.target.value)}
-              disabled={switching || assignments.length === 0}
-            >
-              {assignments.map((assignment) => (
-                <option key={assignment.sppg_id} value={assignment.sppg_id}>
-                  {assignment.sppg_code} | {assignment.sppg_name}
-                </option>
-              ))}
-            </select>
+            <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", fontWeight: 700 }}>
+              SPPG Akun Aktif
+            </label>
+            <div className="status-badge status-neutral">
+              {activeAssignment ? `${activeAssignment.sppg_code} | ${activeAssignment.sppg_name}` : "-"}
+            </div>
             <div className="status-badge status-neutral">Role: {currentRoles.join(", ") || "-"}</div>
+            {assignments.length > 1 ? <div className="badge badge-warn">Mode sederhana aktif: 1 SPPG per akun.</div> : null}
             <ThemeToggle />
           </div>
         </div>
 
-        {(["operasional", "master", "kontrol"] as const).map((section) =>
-          navBySection[section].length > 0 ? (
-            <nav className="nav-group" key={section}>
-              <h4>{sectionTitle(section)}</h4>
-              {navBySection[section].map((item) => {
-                const active = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link className={`nav-link ${active ? "active" : ""}`} key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
-                    <Icon size={16} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          ) : null
-        )}
+        <nav className="nav-group">
+          <h4>Menu Utama</h4>
+          {visibleNav.map((item) => {
+            const active = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link className={`nav-link ${active ? "active" : ""}`} key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
+                <Icon size={16} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
         <button className="btn btn-secondary icon-btn" onClick={logout} style={{ width: "100%" }}>
           <Shield size={16} />

@@ -61,37 +61,62 @@ FULL OUTER JOIN ledger
  )
 WHERE COALESCE(mv.on_hand_qty, 0) <> COALESCE(ledger.ledger_qty, 0);
 
--- 5) Verifikasi constraint tenant composite FK utama.
-SELECT conname, convalidated
-FROM pg_constraint
-WHERE conname IN (
-  'fk_plan_items_menu_plan_tenant',
-  'fk_plan_items_school_tenant',
-  'fk_plan_items_recipe_tenant',
-  'fk_purchase_items_purchase_tenant',
-  'fk_purchase_items_item_tenant',
-  'fk_receipts_purchase_tenant',
-  'fk_receipt_items_receipt_tenant',
-  'fk_receipt_items_purchase_item_tenant',
-  'fk_inventory_batches_item_tenant',
-  'fk_stock_moves_item_tenant',
-  'fk_stock_moves_batch_tenant',
-  'fk_stock_opname_lines_opname_tenant',
-  'fk_production_inputs_run_tenant',
-  'fk_production_inputs_stock_move_tenant',
-  'fk_production_outputs_run_tenant',
-  'fk_production_outputs_school_tenant',
-  'fk_production_outputs_recipe_tenant',
-  'fk_qc_checks_run_tenant',
-  'fk_packing_lines_run_tenant',
-  'fk_packing_lines_school_tenant',
-  'fk_deliveries_route_tenant',
-  'fk_delivery_stops_delivery_tenant',
-  'fk_delivery_stops_school_tenant',
-  'fk_delivery_items_stop_tenant',
-  'fk_delivery_items_packing_tenant',
-  'fk_delivery_proofs_stop_tenant',
-  'fk_delivery_proofs_attachment_tenant',
-  'fk_disputes_stop_tenant'
+-- 5) Verifikasi constraint tenant composite FK utama (missing / belum validated).
+WITH required_constraints AS (
+  SELECT unnest(
+    ARRAY[
+      'fk_plan_items_menu_plan_tenant',
+      'fk_plan_items_school_tenant',
+      'fk_plan_items_recipe_tenant',
+      'fk_purchase_items_purchase_tenant',
+      'fk_purchase_items_item_tenant',
+      'fk_receipts_purchase_tenant',
+      'fk_receipt_items_receipt_tenant',
+      'fk_receipt_items_purchase_item_tenant',
+      'fk_inventory_batches_item_tenant',
+      'fk_inventory_batches_receipt_item_tenant',
+      'fk_stock_moves_item_tenant',
+      'fk_stock_moves_batch_tenant',
+      'fk_stock_moves_uom_tenant',
+      'fk_stock_opname_lines_opname_tenant',
+      'fk_stock_opname_lines_item_tenant',
+      'fk_stock_opname_lines_batch_tenant',
+      'fk_production_runs_menu_plan_tenant',
+      'fk_production_inputs_run_tenant',
+      'fk_production_inputs_stock_move_tenant',
+      'fk_production_inputs_item_tenant',
+      'fk_production_outputs_run_tenant',
+      'fk_production_outputs_school_tenant',
+      'fk_production_outputs_recipe_tenant',
+      'fk_qc_checks_run_tenant',
+      'fk_qc_checks_attachment_tenant',
+      'fk_packing_lines_run_tenant',
+      'fk_packing_lines_school_tenant',
+      'fk_deliveries_route_tenant',
+      'fk_delivery_stops_delivery_tenant',
+      'fk_delivery_stops_school_tenant',
+      'fk_delivery_items_stop_tenant',
+      'fk_delivery_items_packing_tenant',
+      'fk_delivery_proofs_stop_tenant',
+      'fk_delivery_proofs_attachment_tenant',
+      'fk_disputes_stop_tenant',
+      'fk_route_schools_route_tenant',
+      'fk_route_schools_school_tenant',
+      'fk_school_user_access_school_tenant',
+      'fk_recipe_items_recipe_tenant',
+      'fk_recipe_items_item_tenant',
+      'fk_vendor_invoices_vendor_tenant',
+      'fk_entity_attachments_attachment_tenant',
+      'fk_waste_events_item_tenant',
+      'fk_waste_events_batch_tenant',
+      'fk_reports_jobs_attachment_tenant'
+    ]
+  ) AS conname
 )
-ORDER BY conname;
+SELECT
+  rc.conname,
+  c.convalidated
+FROM required_constraints rc
+LEFT JOIN pg_constraint c ON c.conname = rc.conname
+WHERE c.conname IS NULL OR c.convalidated IS DISTINCT FROM true
+ORDER BY rc.conname;

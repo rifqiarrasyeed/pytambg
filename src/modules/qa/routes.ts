@@ -63,6 +63,64 @@ const requiredTriggers = [
   "trg_prevent_audit_logs_delete"
 ] as const;
 
+const forceRlsTables = [
+  "audit_logs",
+  "stock_moves",
+  "attachments",
+  "entity_attachments",
+  "delivery_proofs",
+  "reports_jobs",
+  "idempotency_keys"
+] as const;
+
+const requiredTenantConstraints = [
+  "fk_plan_items_menu_plan_tenant",
+  "fk_plan_items_school_tenant",
+  "fk_plan_items_recipe_tenant",
+  "fk_purchase_items_purchase_tenant",
+  "fk_purchase_items_item_tenant",
+  "fk_receipts_purchase_tenant",
+  "fk_receipt_items_receipt_tenant",
+  "fk_receipt_items_purchase_item_tenant",
+  "fk_inventory_batches_item_tenant",
+  "fk_inventory_batches_receipt_item_tenant",
+  "fk_stock_moves_item_tenant",
+  "fk_stock_moves_batch_tenant",
+  "fk_stock_moves_uom_tenant",
+  "fk_stock_opname_lines_opname_tenant",
+  "fk_stock_opname_lines_item_tenant",
+  "fk_stock_opname_lines_batch_tenant",
+  "fk_production_runs_menu_plan_tenant",
+  "fk_production_inputs_run_tenant",
+  "fk_production_inputs_stock_move_tenant",
+  "fk_production_inputs_item_tenant",
+  "fk_production_outputs_run_tenant",
+  "fk_production_outputs_school_tenant",
+  "fk_production_outputs_recipe_tenant",
+  "fk_qc_checks_run_tenant",
+  "fk_qc_checks_attachment_tenant",
+  "fk_packing_lines_run_tenant",
+  "fk_packing_lines_school_tenant",
+  "fk_deliveries_route_tenant",
+  "fk_delivery_stops_delivery_tenant",
+  "fk_delivery_stops_school_tenant",
+  "fk_delivery_items_stop_tenant",
+  "fk_delivery_items_packing_tenant",
+  "fk_delivery_proofs_stop_tenant",
+  "fk_delivery_proofs_attachment_tenant",
+  "fk_disputes_stop_tenant",
+  "fk_route_schools_route_tenant",
+  "fk_route_schools_school_tenant",
+  "fk_school_user_access_school_tenant",
+  "fk_recipe_items_recipe_tenant",
+  "fk_recipe_items_item_tenant",
+  "fk_vendor_invoices_vendor_tenant",
+  "fk_entity_attachments_attachment_tenant",
+  "fk_waste_events_item_tenant",
+  "fk_waste_events_batch_tenant",
+  "fk_reports_jobs_attachment_tenant"
+] as const;
+
 export async function qaRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     "/qa/health-integrity",
@@ -74,7 +132,16 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         throw badRequest("ACTIVE_SPPG_REQUIRED", "Pilih active SPPG untuk cek integrity tenant");
       }
 
-      const [rlsMissing, policyMissing, leakedGrants, triggerMissing, stockDelta, attachmentMismatch] = await Promise.all([
+      const [
+        rlsMissing,
+        policyMissing,
+        leakedGrants,
+        triggerMissing,
+        forceRlsMissing,
+        tenantConstraintMissing,
+        stockDelta,
+        attachmentMismatch
+      ] = await Promise.all([
         query<{ count: string }>(
           `
             WITH t AS (SELECT unnest($1::text[]) AS table_name)
@@ -120,6 +187,30 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         ),
         query<{ count: string }>(
           `
+            WITH t AS (SELECT unnest($1::text[]) AS table_name)
+            SELECT COUNT(*)::text AS count
+            FROM t
+            LEFT JOIN pg_class c ON c.relname = t.table_name
+            LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public'
+              AND (c.relforcerowsecurity IS DISTINCT FROM true)
+          `,
+          [forceRlsTables]
+        ),
+        query<{ count: string }>(
+          `
+            WITH required_constraints AS (
+              SELECT unnest($1::text[]) AS conname
+            )
+            SELECT COUNT(*)::text AS count
+            FROM required_constraints rc
+            LEFT JOIN pg_constraint c ON c.conname = rc.conname
+            WHERE c.conname IS NULL OR c.convalidated IS DISTINCT FROM true
+          `,
+          [requiredTenantConstraints]
+        ),
+        query<{ count: string }>(
+          `
             WITH ledger AS (
               SELECT
                 sppg_id,
@@ -158,6 +249,8 @@ export async function qaRoutes(app: FastifyInstance): Promise<void> {
         deny_policy_missing_count: Number(policyMissing.rows[0]?.count ?? 0),
         leaked_grants_count: Number(leakedGrants.rows[0]?.count ?? 0),
         required_trigger_missing_count: Number(triggerMissing.rows[0]?.count ?? 0),
+        force_rls_missing_count: Number(forceRlsMissing.rows[0]?.count ?? 0),
+        tenant_constraint_missing_count: Number(tenantConstraintMissing.rows[0]?.count ?? 0),
         stock_mv_mismatch_count: Number(stockDelta.rows[0]?.count ?? 0),
         attachment_tenant_mismatch_count: Number(attachmentMismatch.rows[0]?.count ?? 0)
       };

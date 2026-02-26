@@ -115,6 +115,9 @@ Response:
 
 ### Audit, Reports, Locks
 - `GET /audit-logs`
+- `GET /workspace/summary`
+- `GET /workspace/alerts`
+- `GET /workspace/kpi`
 - `GET /reports/kpi`
 - `GET /reports/kpi-trend`
 - `POST /reports/export`

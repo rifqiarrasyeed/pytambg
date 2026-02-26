@@ -4,10 +4,7 @@ import { refreshAccessTokenOnServer } from "@/lib/backend";
 import { ACCESS_COOKIE } from "@/lib/constants";
 
 function apiBase(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!base) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
-  }
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
   return base.replace(/\/+$/, "");
 }
 
@@ -48,11 +45,45 @@ async function forward(request: Request, params: { path: string[] }) {
     });
   };
 
-  let backendResponse = await execute(accessToken);
+  let backendResponse: Response;
+  try {
+    backendResponse = await execute(accessToken);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "BACKEND_UNREACHABLE",
+          message: "Backend API tidak dapat dijangkau dari proxy frontend",
+          details: {
+            target_url: targetUrl,
+            reason: error instanceof Error ? error.message : "unknown"
+          }
+        }
+      },
+      { status: 502 }
+    );
+  }
+
   if (backendResponse.status === 401) {
     const refreshed = await refreshAccessTokenOnServer();
     if (refreshed) {
-      backendResponse = await execute(refreshed);
+      try {
+        backendResponse = await execute(refreshed);
+      } catch (error) {
+        return NextResponse.json(
+          {
+            error: {
+              code: "BACKEND_UNREACHABLE",
+              message: "Backend API tidak dapat dijangkau setelah token refresh",
+              details: {
+                target_url: targetUrl,
+                reason: error instanceof Error ? error.message : "unknown"
+              }
+            }
+          },
+          { status: 502 }
+        );
+      }
     }
   }
 

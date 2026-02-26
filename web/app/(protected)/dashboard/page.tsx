@@ -2,7 +2,8 @@
 
 import { Activity, CalendarDays, Lock, RefreshCw, Scale, Truck, Utensils, Unlock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { ChartShell } from "@/components/chart-shell";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -171,9 +172,9 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
-              <AreaChart data={trend}>
+          <ChartShell minHeight={300}>
+            {({ width, height }) => (
+              <AreaChart width={width} height={height} data={trend}>
                 <defs>
                   <linearGradient id="plannedGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.45} />
@@ -191,8 +192,8 @@ export default function DashboardPage() {
                 <Area type="monotone" dataKey="planned" stroke="var(--brand)" fill="url(#plannedGrad)" strokeWidth={2} />
                 <Area type="monotone" dataKey="delivered" stroke="var(--success)" fill="url(#deliveredGrad)" strokeWidth={2} />
               </AreaChart>
-            </ResponsiveContainer>
-          </div>
+            )}
+          </ChartShell>
         </div>
       </section>
 
@@ -258,4 +259,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

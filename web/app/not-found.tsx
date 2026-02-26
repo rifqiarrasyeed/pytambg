@@ -20,8 +20,8 @@ export default function NotFoundPage() {
             Rute yang kamu akses tidak tersedia atau sudah dipindahkan.
           </p>
           <div className="action-row">
-            <Link className="btn btn-primary" href="/dashboard">
-              Ke Dashboard
+            <Link className="btn btn-primary" href="/planning">
+              Ke Planning
             </Link>
             <Link className="btn btn-secondary" href="/login">
               Ke Login

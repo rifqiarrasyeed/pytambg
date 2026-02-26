@@ -27,6 +27,17 @@ Dokumentasi detail tersedia di folder `docs/`:
 - Deploy orchestration: `scripts/deploy/*.ts` (Supabase + Render + Vercel + smoke test)
 
 ## Fitur Inti
+- Model operasi lokal saat ini: `1 SPPG per akun` (tenant switcher disembunyikan untuk simplifikasi UX)
+- UX operasional disederhanakan ke 6 menu utama:
+  - `Planning`, `Procurement`, `Inventory`, `Produksi`, `Distribusi`, `Laporan`
+- Role-based strict visibility:
+  - user hanya melihat menu sesuai role aktif
+- Rute legacy tetap kompatibel via redirect otomatis:
+  - `/dashboard -> /` (home by role)
+  - `/verification -> /delivery?tab=verification`
+  - `/disputes -> /delivery?tab=disputes`
+  - `/audit|/settings|/master-data|/sppg-admin|/incidents -> /reports?tab=<advanced>`
+- Advanced console dipusatkan di halaman `Laporan` (Audit, Settings, Master Data, Admin Pusat)
 - Multi-tenant scope berbasis `active_sppg` (backend inject scope, body `sppg_id` diabaikan)
 - Guard anti cross-tenant pada resource (`id + sppg_id`)
 - RBAC by role (`SUPER_ADMIN`, `ADMIN_SPPG`, `NUTRITIONIST`, dst)
@@ -53,6 +64,10 @@ Dokumentasi detail tersedia di folder `docs/`:
   - `GET /reports/kpi-trend`
 - Endpoint observability QA:
   - `GET /qa/health-integrity`
+- Endpoint aggregator workspace (local-first UI simplification):
+  - `GET /workspace/summary`
+  - `GET /workspace/alerts`
+  - `GET /workspace/kpi`
 
 ## Struktur Direktori
 - `src/` backend modules, guards, services
@@ -163,6 +178,18 @@ Template env provisioning tersedia di:
 ## Baseline Stabil Lokal
 Baseline ini adalah snapshot lokal yang sudah lolos gate kualitas penuh untuk operasional solo.
 
+### Rekaman Freeze Baseline Terbaru
+- Waktu freeze: `2026-02-26 18:40:35 +07:00`
+- Branch: `feat/hardening-sync-backend-db-rls`
+- Drift elimination:
+  - `npm run deploy:db` -> pass
+  - `npm run deploy:db:assert` -> pass
+- Gate `qa:full`: pass `2x` berurutan
+- Lokasi evidence:
+  - `playwright-report/`
+  - `test-results/`
+  - output terminal gate lokal (catatan operator)
+
 ### Gate tunggal wajib
 - Jalankan: `npm run qa:full`
 - Gate ini mengeksekusi berurutan:
@@ -190,3 +217,15 @@ Baseline ini adalah snapshot lokal yang sudah lolos gate kualitas penuh untuk op
 ### Catatan operasional solo
 - Jika gate gagal karena konflik data UAT (mis. tanggal plan bentrok), jalankan ulang setelah seed/reset yang sesuai.
 - Jangan commit file rahasia (`.env`, `.env.local`, `scripts/deploy/.env.local`).
+
+### Reliability Core Checklist
+- Jalankan siklus cepat: `npm run qa:quick`
+- Jalankan gate penuh repeatable: `npm run qa:full`
+- Jalankan E2E ketat (fail-fast warning marker): `npm run e2e:strict`
+- Marker yang wajib bersih:
+  - `allowedDevOrigins`
+  - `Cross origin request detected`
+  - `width(-1)` / `height(-1)`
+- Port lokal standar:
+  - backend `http://127.0.0.1:3000`
+  - frontend `http://127.0.0.1:3001`

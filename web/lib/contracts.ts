@@ -111,3 +111,35 @@ export type RecipePatchPayload = {
   status?: "DRAFT" | "APPROVED" | "ARCHIVED";
   items?: Array<{ item_id: string; qty_per_portion: number; loss_factor: number }>;
 };
+
+export type WorkspaceSummaryResponse = {
+  date: string;
+  counters: {
+    planning_pending: number;
+    po_pending: number;
+    production_active: number;
+    delivery_active: number;
+    verification_pending: number;
+    disputes_open: number;
+  };
+};
+
+export type WorkspaceAlert = {
+  kind: "MISSING_PROOF" | "OPEN_DISPUTE" | "NEAR_EXPIRY";
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  title: string;
+  count: number;
+};
+
+export type RoleMenuVisibilityMap = Record<
+  "planning" | "procurement" | "inventory" | "production" | "delivery" | "reports",
+  boolean
+>;
+
+export type DeliveryTab = "manifest" | "verification" | "disputes";
+export type ReportsTab = "overview" | "audit" | "settings" | "master" | "admin" | "incidents";
+
+export type RoleHomeRouteMap = Record<
+  "SUPER_ADMIN" | "ADMIN_SPPG" | "NUTRITIONIST" | "INVENTORY" | "KITCHEN_PRODUCTION" | "DRIVER" | "SCHOOL_VERIFIER" | "AUDITOR_VIEWER",
+  string
+>;

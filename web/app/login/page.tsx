@@ -4,6 +4,7 @@ import { KeyRound, LogIn } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
+import { resolveRoleHomeRoute } from "@/lib/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,11 +19,16 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await apiClient("/api/auth/login", {
+      const response = await apiClient<{
+        assignments?: Array<{ sppg_id: string; roles?: string[] }>;
+        active_sppg_id?: string | null;
+      }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
-      router.push("/dashboard");
+      const activeRoles =
+        response.assignments?.find((assignment) => assignment.sppg_id === response.active_sppg_id)?.roles ?? [];
+      router.push(resolveRoleHomeRoute(activeRoles));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");

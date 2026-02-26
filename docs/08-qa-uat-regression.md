@@ -20,6 +20,28 @@ psql "<ISI_DATABASE_URL_POOLER>" -f sql/check_integrity.sql
 psql "<ISI_DATABASE_URL_POOLER>" -f sql/check_rls.sql
 ```
 
+## 2.1) Reliability Core (Solo Operator)
+```bash
+npm run qa:quick
+npm run e2e:strict
+npm run qa:full
+```
+
+Checklist reliability:
+1. Tidak ada warning `allowedDevOrigins` saat `npm run e2e:strict`.
+2. Tidak ada warning chart `width(-1)` / `height(-1)`.
+3. `qa:full` lulus minimal 2x run berurutan sebelum freeze/push.
+
+Troubleshooting cepat:
+1. Port conflict (`EADDRINUSE`):
+   - hentikan proses lama di port 3000/3001 lalu rerun.
+2. Stale process Playwright:
+   - pastikan `playwright.config.ts` tetap `reuseExistingServer: false`.
+3. Date collision data UAT (plan/lock):
+   - rerun dengan data fixture tanggal baru (helper `futureDateSafe` di `e2e/support.ts`).
+4. Backend proxy tidak reachable:
+   - cek backend aktif di `http://127.0.0.1:3000`, frontend proxy otomatis fallback ke URL ini jika env kosong.
+
 ## 3) Skenario Wajib (Ringkas)
 1. Login valid/invalid/inactive.
 2. Switch SPPG assigned/unassigned.
@@ -63,3 +85,14 @@ psql "<ISI_DATABASE_URL_POOLER>" -f sql/check_rls.sql
 - catatan defect + status fix.
 - rekaman langkah UAT per role.
 
+## 6) Evidence Freeze Baseline (Solo Operator)
+- Timestamp freeze: `2026-02-26 18:40:35 +07:00`
+- Branch kerja: `feat/hardening-sync-backend-db-rls`
+- Hasil gate:
+  - `npm run deploy:db` -> pass
+  - `npm run deploy:db:assert` -> pass
+  - `npm run qa:full` -> pass run #1
+  - `npm run qa:full` -> pass run #2
+- Artefak:
+  - `playwright-report/`
+  - `test-results/`

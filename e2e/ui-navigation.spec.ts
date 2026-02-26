@@ -8,7 +8,7 @@ async function login(page: Page): Promise<void> {
   await page.getByLabel("Email").fill(EMAIL);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: /Masuk/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/(planning|reports)/, { timeout: 20_000 });
 }
 
 test("navigasi modul utama render normal dan aksi utama tersedia", async ({ page }) => {
@@ -16,20 +16,12 @@ test("navigasi modul utama render normal dan aksi utama tersedia", async ({ page
   await login(page);
 
   const routes: Array<{ path: string; title: string; actionText: RegExp }> = [
-    { path: "/dashboard", title: "Dashboard Operasional", actionText: /Refresh|Terapkan/i },
     { path: "/planning", title: "Menu Planning & MRP", actionText: /Buat Plan|Submit Selected|Approve Selected/i },
     { path: "/procurement", title: "Procurement & Receiving", actionText: /Buat PO|Approve PO|Post GRN/i },
     { path: "/inventory", title: "Inventory & Opname", actionText: /Post Move|Buat Opname|Approve Opname/i },
     { path: "/production", title: "Production Run", actionText: /Buat Run|Start Run|Finalize Run/i },
-    { path: "/delivery", title: "Delivery & Chain of Custody", actionText: /Buat Manifest|Update Status|Upload Proof/i },
-    { path: "/verification", title: "School Verification", actionText: /Verify Stop|Refresh/i },
-    { path: "/disputes", title: "Dispute Management", actionText: /Create Dispute|Resolve Selected/i },
-    { path: "/incidents", title: "Incident, Waste & Recall", actionText: /Simpan Waste|Simpan Incident/i },
-    { path: "/reports", title: "Reports & Export Jobs", actionText: /Generate Export|Signed URL|Muat KPI/i },
-    { path: "/audit", title: "Audit Trail", actionText: /Filter|Refresh/i },
-    { path: "/settings", title: "SPPG Settings", actionText: /Simpan Versi Baru|Reload/i },
-    { path: "/master-data", title: "Master Data Operasional", actionText: /Simpan|Update|Tambah/i },
-    { path: "/sppg-admin", title: "Admin Pusat SPPG", actionText: /Tambah SPPG|Update SPPG|Simpan Assignment/i }
+    { path: "/delivery", title: "Distribusi", actionText: /Manifest|Verification Queue|Disputes/i },
+    { path: "/reports", title: "Laporan", actionText: /Overview|Audit|Settings|Master Data/i }
   ];
 
   for (const route of routes) {
@@ -40,4 +32,21 @@ test("navigasi modul utama render normal dan aksi utama tersedia", async ({ page
 
   const themeButton = page.getByRole("button", { name: /(Light|Dark|System)/i }).first();
   await expect(themeButton).toBeVisible();
+});
+
+test("route legacy otomatis diarahkan ke route baru", async ({ page }) => {
+  test.setTimeout(120_000);
+  await login(page);
+
+  await page.goto("/verification", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/delivery\?tab=verification/);
+
+  await page.goto("/disputes", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/delivery\?tab=disputes/);
+
+  await page.goto("/audit", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/reports\?tab=audit/);
+
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/(planning|reports)/);
 });
