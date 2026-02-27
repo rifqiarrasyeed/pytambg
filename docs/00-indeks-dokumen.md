@@ -23,6 +23,8 @@ Dokumen ini menjadi pintu masuk utama untuk memahami sistem MBG Ops yang berjala
    Tujuan: SOP harian, lock period, dispute, incident handling.
 10. `10-template-placeholder.md`  
    Tujuan: daftar placeholder wajib isi tim deploy/infrastruktur.
+11. `11-handover-tim.md`  
+   Tujuan: panduan onboarding engineer/QA, SOP perubahan kode, gate sebelum push, dan troubleshooting tim.
 
 ## Definisi Istilah Operasional
 - `SPPG`: tenant dapur operasional MBG.

@@ -26,6 +26,7 @@ Aplikasi SaaS operasional Dapur SPPG dengan fokus:
 - `web/prisma/seed.ts` seed akun dan data demo
 - `web/prisma/rls.sql` hardening RLS deny-all role client
 - `docker-compose.yml` local stack
+- `docs/11-handover-tim.md` handover engineer/QA (onboarding + SOP + gate)
 
 ## Setup lokal cepat
 1. Copy env:
