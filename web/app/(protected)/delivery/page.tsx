@@ -275,7 +275,7 @@ export default function DeliveryPage() {
         subtitle="Manifest, verifikasi sekolah, dan dispute berada dalam satu alur Distribusi."
         icon={Truck}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => (activeTab === "manifest" ? load() : router.refresh())}>
+          <button className="btn btn-secondary icon-btn" data-testid="delivery-refresh" onClick={() => (activeTab === "manifest" ? load() : router.refresh())}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -292,7 +292,7 @@ export default function DeliveryPage() {
         <div className="card-body">
           <div className="action-row" style={{ flexWrap: "wrap" }}>
             {deliveryTabs.map((tab) => (
-              <button key={tab.key} className={activeTab === tab.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => openTab(tab.key)}>
+              <button key={tab.key} data-testid={`delivery-tab-${tab.key}`} className={activeTab === tab.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => openTab(tab.key)}>
                 {tab.label}
               </button>
             ))}
@@ -361,7 +361,7 @@ export default function DeliveryPage() {
                   </select>
                 </label>
               </div>
-              <button className="btn btn-primary" type="submit" disabled={busy || !canManageDelivery}>
+              <button className="btn btn-primary" data-testid="delivery-create-manifest" type="submit" disabled={busy || !canManageDelivery}>
                 Buat Manifest
               </button>
               {!canManageDelivery ? <div className="badge badge-warn">Role aktif tidak memiliki izin create manifest</div> : null}
@@ -408,10 +408,10 @@ export default function DeliveryPage() {
                 </label>
               </div>
               <div className="action-row">
-                <button className="btn btn-secondary" type="button" onClick={updateStatus} disabled={busy || !selectedDeliveryId || !canUpdateStatus}>
+                <button className="btn btn-secondary" data-testid="delivery-update-status" type="button" onClick={updateStatus} disabled={busy || !selectedDeliveryId || !canUpdateStatus}>
                   Update Status
                 </button>
-                <button className="btn btn-secondary" type="button" onClick={() => loadStops(selectedDeliveryId)} disabled={busy || !selectedDeliveryId}>
+                <button className="btn btn-secondary" data-testid="delivery-reload-stops" type="button" onClick={() => loadStops(selectedDeliveryId)} disabled={busy || !selectedDeliveryId}>
                   Reload Stops
                 </button>
                 <span className="status-badge status-neutral">Manifest: {selectedDelivery?.manifest_no ?? "-"}</span>
@@ -444,7 +444,7 @@ export default function DeliveryPage() {
                   disabled={busy || !selectedStopId || !canUploadProof}
                   onUploaded={setProofAttachment}
                 />
-                <button className="btn btn-primary" type="submit" disabled={busy || !selectedDeliveryId || !selectedStopId || !proofAttachment || !canUploadProof}>
+                <button className="btn btn-primary" data-testid="delivery-submit-proof" type="submit" disabled={busy || !selectedDeliveryId || !selectedStopId || !proofAttachment || !canUploadProof}>
                   Submit Proof
                 </button>
               </form>
@@ -454,7 +454,7 @@ export default function DeliveryPage() {
           <section className="card">
             <div className="card-header">
               <strong>Daftar Delivery</strong>
-              <button className="btn btn-secondary" onClick={() => load()}>
+              <button className="btn btn-secondary" data-testid="delivery-refresh-list" onClick={() => load()}>
                 Refresh
               </button>
             </div>
@@ -473,7 +473,7 @@ export default function DeliveryPage() {
                     {deliveries.map((row) => (
                       <tr key={row.id}>
                         <td>
-                          <button className="btn btn-secondary" onClick={() => setSelectedDeliveryId(row.id)}>
+                          <button className="btn btn-secondary" data-testid="delivery-select-manifest" onClick={() => setSelectedDeliveryId(row.id)}>
                             Pilih
                           </button>
                         </td>
@@ -503,7 +503,7 @@ export default function DeliveryPage() {
                     {stops.map((stop) => (
                       <tr key={stop.id}>
                         <td>
-                          <button className="btn btn-secondary" onClick={() => setSelectedStopId(stop.id)}>
+                          <button className="btn btn-secondary" data-testid="delivery-select-stop" onClick={() => setSelectedStopId(stop.id)}>
                             Pilih
                           </button>
                         </td>

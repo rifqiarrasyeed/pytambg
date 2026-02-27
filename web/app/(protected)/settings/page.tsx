@@ -57,7 +57,7 @@ export default function SettingsPage() {
         subtitle="Kelola konfigurasi tenant dan versioning setting operasional."
         icon={SlidersHorizontal}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="settings-reload" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Reload</span>
           </button>
@@ -85,7 +85,7 @@ export default function SettingsPage() {
             style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }}
           />
           <div>
-            <button className="btn btn-primary" onClick={save} disabled={busy}>
+            <button className="btn btn-primary" data-testid="settings-save" onClick={save} disabled={busy}>
               Simpan Versi Baru
             </button>
           </div>

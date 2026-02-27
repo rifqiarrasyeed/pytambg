@@ -148,7 +148,7 @@ export default function ReportsPage() {
         subtitle="Overview operasional + advanced governance dalam tab terpusat."
         icon={BarChart3}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => (activeTab === "overview" ? loadOverview() : router.refresh())}>
+          <button className="btn btn-secondary icon-btn" data-testid="reports-refresh" onClick={() => (activeTab === "overview" ? loadOverview() : router.refresh())}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -165,7 +165,7 @@ export default function ReportsPage() {
         <div className="card-body">
           <div className="action-row" style={{ flexWrap: "wrap" }}>
             {visibleTabs.map((tab) => (
-              <button key={tab.key} className={activeTab === tab.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => openTab(tab.key)}>
+              <button key={tab.key} data-testid={`reports-tab-${tab.key}`} className={activeTab === tab.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => openTab(tab.key)}>
                 {tab.label}
               </button>
             ))}
@@ -178,7 +178,7 @@ export default function ReportsPage() {
           <section className="card">
             <div className="card-header">
               <strong>KPI Hari Ini</strong>
-              <button className="btn btn-secondary" onClick={() => loadOverview()}>
+              <button className="btn btn-secondary" data-testid="reports-load-kpi" onClick={() => loadOverview()}>
                 Muat KPI
               </button>
             </div>
@@ -302,7 +302,7 @@ export default function ReportsPage() {
                   </select>
                 </label>
               </div>
-              <button className="btn btn-primary" type="submit" disabled={busy}>
+              <button className="btn btn-primary" data-testid="reports-generate-export" type="submit" disabled={busy}>
                 Generate Export
               </button>
               {downloadUrl ? (
@@ -342,7 +342,7 @@ export default function ReportsPage() {
                       </td>
                       <td>
                         {job.result_attachment_id ? (
-                          <button className="btn btn-secondary" onClick={() => getSignedUrl(job.result_attachment_id!)}>
+                          <button className="btn btn-secondary" data-testid="reports-job-signed-url" onClick={() => getSignedUrl(job.result_attachment_id!)}>
                             Signed URL
                           </button>
                         ) : (

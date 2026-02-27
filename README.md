@@ -16,7 +16,8 @@ Aplikasi SaaS operasional Dapur SPPG dengan fokus:
 - Billing: Midtrans (Snap + webhook)
 
 ## Struktur utama
-- `web/app/app/*` Tenant console
+- `web/app/(protected)/*` Tenant console canonical (source-of-truth UI operasional)
+- `web/app/app/*` Layer kompatibilitas redirect ke canonical route
 - `web/app/platform/*` Platform internal (ops/admin)
 - `web/app/api/*` API route handlers
 - `web/lib/core/*` auth, tenant scope, RBAC, audit, billing, storage
@@ -120,10 +121,10 @@ Branch freeze:
 - `feat/rc-local-audit-coverage`
 
 Head saat freeze:
-- `094b941 feat(audit): harden audit coverage observability + filters + rc checks`
+- `4a52fba docs+stability: freeze rc baseline + sync docs + deterministic e2e strict`
 
 Timestamp freeze:
-- `2026-02-27 01:03:01 +07:00`
+- `2026-02-27 07:58:13 +07:00`
 
 Gate utama:
 ```bash
@@ -131,10 +132,36 @@ npm run qa:full
 ```
 Wajib lulus 2x berurutan sebelum push baseline.
 
+Status validasi terakhir:
+1. `npm test` -> pass
+2. `npm run build` -> pass
+3. `npm run web:build` -> pass
+4. `npm run deploy:db:assert` -> pass
+5. `npm run e2e:strict` -> pass
+6. `npm run qa:full` -> pass run #1
+7. `npm run qa:full` -> pass run #2
+
 Catatan reliability:
 1. `e2e:strict` sekarang otomatis pakai server production (`npm run start` + `npm run web:start`) jika build tersedia (`dist/index.js` dan `web/.next/BUILD_ID`).
 2. Jika build belum tersedia, runner fallback ke mode dev.
-3. Legacy redirect tetap aktif:
+3. Canonical route operasional ada di `/(protected)`:
+   - `/planning`
+   - `/procurement`
+   - `/inventory`
+   - `/production`
+   - `/delivery`
+   - `/reports`
+4. Route kompatibilitas `/app/*` diarahkan middleware ke canonical:
+   - `/app` -> `/planning`
+   - `/app/dashboard` -> `/planning`
+   - `/app/plans` -> `/planning`
+   - `/app/production` -> `/production`
+   - `/app/deliveries` -> `/delivery`
+   - `/app/reports` -> `/reports`
+   - `/app/master/*` -> `/master-data`
+   - `/app/settings` -> `/settings`
+   - `/app/billing` -> `/reports?tab=overview`
+5. Legacy redirect tetap aktif:
    - `/verification` -> `/delivery?tab=verification`
    - `/disputes` -> `/delivery?tab=disputes`
    - `/audit` -> `/reports?tab=audit`

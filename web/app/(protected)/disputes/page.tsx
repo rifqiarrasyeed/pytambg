@@ -184,7 +184,7 @@ export default function DisputesPage() {
         subtitle="Kelola dispute mismatch dari sekolah, termasuk resolusi dan stock action."
         icon={AlertOctagon}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="disputes-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -219,7 +219,7 @@ export default function DisputesPage() {
               <input className="input" value={createForm.reason} onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })} required />
             </label>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy || !canManageDispute}>
+          <button className="btn btn-primary" data-testid="disputes-create" type="submit" disabled={busy || !canManageDispute}>
             Create Dispute
           </button>
           <AttachmentUploader
@@ -290,7 +290,7 @@ export default function DisputesPage() {
               <input className="input" value={resolveForm.notes} onChange={(e) => setResolveForm({ ...resolveForm, notes: e.target.value })} />
             </label>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy || !selectedDispute || !canManageDispute}>
+          <button className="btn btn-primary" data-testid="disputes-resolve" type="submit" disabled={busy || !selectedDispute || !canManageDispute}>
             Resolve Selected
           </button>
         </form>
@@ -317,7 +317,7 @@ export default function DisputesPage() {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <button className="btn btn-secondary" onClick={() => setSelectedDisputeId(row.id)}>
+                    <button className="btn btn-secondary" data-testid="disputes-select" onClick={() => setSelectedDisputeId(row.id)}>
                       Pilih
                     </button>
                   </td>

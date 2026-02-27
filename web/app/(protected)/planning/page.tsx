@@ -114,7 +114,7 @@ export default function PlanningPage() {
         subtitle="Flow: buat plan, submit, lalu approve untuk lanjut ke procurement."
         icon={CalendarRange}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="planning-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -180,13 +180,13 @@ export default function PlanningPage() {
             </label>
           </div>
           <div className="action-row">
-            <button className="btn btn-primary" type="submit" disabled={busy}>
+            <button className="btn btn-primary" data-testid="planning-create" type="submit" disabled={busy}>
               Buat Plan
             </button>
-            <button className="btn btn-secondary" type="button" disabled={busy || !selectedPlanId} onClick={() => runAction("submit")}>
+            <button className="btn btn-secondary" data-testid="planning-submit-selected" type="button" disabled={busy || !selectedPlanId} onClick={() => runAction("submit")}>
               Submit Selected
             </button>
-            <button className="btn btn-secondary" type="button" disabled={busy || !selectedPlanId} onClick={() => runAction("approve")}>
+            <button className="btn btn-secondary" data-testid="planning-approve-selected" type="button" disabled={busy || !selectedPlanId} onClick={() => runAction("approve")}>
               Approve Selected
             </button>
           </div>
@@ -217,7 +217,7 @@ export default function PlanningPage() {
                 rows.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <button className="btn btn-secondary" onClick={() => setSelectedPlanId(row.id)}>
+                      <button className="btn btn-secondary" data-testid="planning-select-row" onClick={() => setSelectedPlanId(row.id)}>
                         Pilih
                       </button>
                     </td>

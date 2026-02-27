@@ -173,7 +173,7 @@ export default function IncidentsPage() {
         subtitle="Catat kejadian kritikal, bukti lapangan, dan telusur recall batch."
         icon={Siren}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="incidents-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -221,7 +221,7 @@ export default function IncidentsPage() {
               </select>
             </label>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy || !canWriteWaste}>
+          <button className="btn btn-primary" data-testid="incidents-save-waste" type="submit" disabled={busy || !canWriteWaste}>
             Simpan Waste
           </button>
           <AttachmentUploader
@@ -277,7 +277,7 @@ export default function IncidentsPage() {
               <input className="input" type="datetime-local" value={incidentForm.due_at} onChange={(e) => setIncidentForm({ ...incidentForm, due_at: e.target.value })} />
             </label>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy || !canWriteIncident}>
+          <button className="btn btn-primary" data-testid="incidents-save-incident" type="submit" disabled={busy || !canWriteIncident}>
             Simpan Incident
           </button>
           <AttachmentUploader
@@ -298,7 +298,7 @@ export default function IncidentsPage() {
         <div className="card-body" style={{ display: "grid", gap: 10 }}>
           <div className="action-row">
             <input className="input" placeholder="Lot No" value={recallLot} onChange={(e) => setRecallLot(e.target.value)} />
-            <button className="btn btn-secondary" onClick={traceRecall} disabled={busy}>
+            <button className="btn btn-secondary" data-testid="incidents-trace-recall" onClick={traceRecall} disabled={busy}>
               Trace
             </button>
           </div>

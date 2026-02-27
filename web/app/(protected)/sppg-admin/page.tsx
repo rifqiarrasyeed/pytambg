@@ -165,7 +165,7 @@ export default function SppgAdminPage() {
         subtitle="Kelola tenant SPPG dan assignment user lintas role secara terkontrol."
         icon={Building2}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => loadAll()} disabled={busy}>
+          <button className="btn btn-secondary icon-btn" data-testid="sppg-admin-refresh" onClick={() => loadAll()} disabled={busy}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -193,8 +193,8 @@ export default function SppgAdminPage() {
           </div>
           <label>Settings JSON<textarea className="textarea" rows={8} value={sppgForm.settings_json} onChange={(e) => setSppgForm({ ...sppgForm, settings_json: e.target.value })} /></label>
           <div className="action-row">
-            <button className="btn btn-primary" onClick={saveSppg} disabled={busy}>{sppgForm.id ? "Update SPPG" : "Tambah SPPG"}</button>
-            {sppgForm.id ? <button className="btn btn-secondary" onClick={() => setSppgForm({ id: "", code: "", name: "", status: "PENDING_SETUP", timezone: "Asia/Jakarta", settings_json: '{\n  "operational_hours": {"start":"05:00","end":"18:00"}\n}' })}>Batal Edit</button> : null}
+            <button className="btn btn-primary" data-testid="sppg-admin-save-sppg" onClick={saveSppg} disabled={busy}>{sppgForm.id ? "Update SPPG" : "Tambah SPPG"}</button>
+            {sppgForm.id ? <button className="btn btn-secondary" data-testid="sppg-admin-cancel-edit" onClick={() => setSppgForm({ id: "", code: "", name: "", status: "PENDING_SETUP", timezone: "Asia/Jakarta", settings_json: '{\n  "operational_hours": {"start":"05:00","end":"18:00"}\n}' })}>Batal Edit</button> : null}
           </div>
         </div>
       </section>
@@ -208,8 +208,8 @@ export default function SppgAdminPage() {
               {sppg.map((row) => (
                 <tr key={row.id}>
                   <td className="action-row">
-                    <button className="btn btn-secondary" onClick={() => setSppgForm({ id: row.id, code: row.code, name: row.name, status: row.status, timezone: row.timezone, settings_json: JSON.stringify(row.config ?? {}, null, 2) })}>Edit</button>
-                    <button className={selectedSppgId === row.id ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setSelectedSppgId(row.id)}>Pilih</button>
+                    <button className="btn btn-secondary" data-testid="sppg-admin-edit-row" onClick={() => setSppgForm({ id: row.id, code: row.code, name: row.name, status: row.status, timezone: row.timezone, settings_json: JSON.stringify(row.config ?? {}, null, 2) })}>Edit</button>
+                    <button className={selectedSppgId === row.id ? "btn btn-primary" : "btn btn-secondary"} data-testid="sppg-admin-select-row" onClick={() => setSelectedSppgId(row.id)}>Pilih</button>
                   </td>
                   <td>{row.code}</td><td>{row.name}</td><td><StatusBadge value={row.status} /></td><td>{row.config_version ?? "-"}</td>
                 </tr>
@@ -251,7 +251,7 @@ export default function SppgAdminPage() {
               </label>
             ))}
           </div>
-          <button className="btn btn-primary" onClick={saveAssignment} disabled={busy || !selectedSppgId || assignForm.role_scope.length === 0}>Simpan Assignment</button>
+          <button className="btn btn-primary" data-testid="sppg-admin-save-assignment" onClick={saveAssignment} disabled={busy || !selectedSppgId || assignForm.role_scope.length === 0}>Simpan Assignment</button>
           <div className="table-wrap">
             <table className="table">
               <thead><tr><th>User</th><th>Email</th><th>Role Scope</th><th>Default</th><th>Status</th></tr></thead>

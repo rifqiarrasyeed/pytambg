@@ -158,7 +158,7 @@ export default function InventoryPage() {
         subtitle="Ledger stok append-only, adjustment terkontrol, dan opname periodik."
         icon={Boxes}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="inventory-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -215,7 +215,7 @@ export default function InventoryPage() {
             </label>
           </div>
 
-          <button className="btn btn-primary" type="submit" disabled={busy || !selectedStock}>
+          <button className="btn btn-primary" data-testid="inventory-post-move" type="submit" disabled={busy || !selectedStock}>
             Post Stock Move
           </button>
         </form>
@@ -249,13 +249,13 @@ export default function InventoryPage() {
           </div>
 
           <div className="action-row">
-            <button className="btn btn-primary" type="submit" disabled={busy || !selectedStock}>
+            <button className="btn btn-primary" data-testid="inventory-create-opname" type="submit" disabled={busy || !selectedStock}>
               Buat Opname
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => runOpnameAction("submit")} disabled={busy || !selectedOpnameId}>
+            <button type="button" data-testid="inventory-submit-opname" className="btn btn-secondary" onClick={() => runOpnameAction("submit")} disabled={busy || !selectedOpnameId}>
               Submit Selected
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => runOpnameAction("approve")} disabled={busy || !selectedOpnameId}>
+            <button type="button" data-testid="inventory-approve-opname" className="btn btn-secondary" onClick={() => runOpnameAction("approve")} disabled={busy || !selectedOpnameId}>
               Approve Selected
             </button>
           </div>
@@ -265,7 +265,7 @@ export default function InventoryPage() {
       <section className="card">
         <div className="card-header">
           <strong>Stock Snapshot</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
+          <button className="btn btn-secondary" data-testid="inventory-refresh-list" onClick={() => load()}>
             Refresh
           </button>
         </div>
@@ -285,7 +285,7 @@ export default function InventoryPage() {
                 {stock.map((row, idx) => (
                   <tr key={`${row.item_id}-${idx}`}>
                     <td>
-                      <button className="btn btn-secondary" onClick={() => setSelectedStockKey(`${row.item_id}:${row.batch_id ?? "nobatch"}`)}>
+                      <button className="btn btn-secondary" data-testid="inventory-select-stock" onClick={() => setSelectedStockKey(`${row.item_id}:${row.batch_id ?? "nobatch"}`)}>
                         Pilih
                       </button>
                     </td>

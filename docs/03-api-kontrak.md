@@ -11,6 +11,30 @@ Route lama tetap hidup sebagai redirect agar bookmark lama tidak putus:
 3. `/audit` -> `/reports?tab=audit`
 4. `/dashboard` -> `/planning`
 
+## Canonical Route Tenant (Frontend)
+Jalur operasional utama memakai route canonical `/(protected)`:
+1. `/planning`
+2. `/procurement`
+3. `/inventory`
+4. `/production`
+5. `/delivery`
+6. `/reports`
+
+## Kompatibilitas `/app/*` (Frontend)
+Route rewrite tenant lama dipertahankan sebagai compatibility layer via middleware:
+1. `/app` -> `/planning`
+2. `/app/dashboard` -> `/planning`
+3. `/app/plans` -> `/planning`
+4. `/app/production` -> `/production`
+5. `/app/deliveries` -> `/delivery`
+6. `/app/reports` -> `/reports`
+7. `/app/master` -> `/master-data`
+8. `/app/master/schools` -> `/master-data`
+9. `/app/master/routes` -> `/master-data`
+10. `/app/master/users` -> `/master-data`
+11. `/app/settings` -> `/settings`
+12. `/app/billing` -> `/reports?tab=overview`
+
 ## Error Envelope Baku
 ```json
 {

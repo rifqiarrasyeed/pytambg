@@ -13,12 +13,24 @@ async function login(page: Page): Promise<void> {
       });
       expect(response.ok(), await response.text()).toBe(true);
       await page.goto("/planning", { waitUntil: "domcontentloaded", timeout: 30_000 });
-      await expect(page).toHaveURL(/\/(app\/dashboard|planning|reports)/, { timeout: 20_000 });
+      await expect
+        .poll(() => new URL(page.url()).pathname, { timeout: 20_000 })
+        .toMatch(/^\/(planning|reports)$/);
+      if (new URL(page.url()).pathname === "/login") {
+        throw new Error("Login API fallback tidak menghasilkan sesi browser, mencoba login via UI.");
+      }
       return;
     } catch (error) {
       lastError = error;
       if (attempt < 3) {
-        await page.waitForTimeout(1000);
+        await page.goto("/login", { waitUntil: "domcontentloaded", timeout: 30_000 });
+        await page.getByLabel("Email").fill(EMAIL);
+        await page.getByLabel("Password").fill(PASSWORD);
+        await page.getByRole("button", { name: /Masuk|Login|Sign in/i }).first().click();
+        await expect
+          .poll(() => new URL(page.url()).pathname, { timeout: 20_000 })
+          .toMatch(/^\/(planning|reports)$/);
+        return;
       }
     }
   }
@@ -82,5 +94,28 @@ test("route legacy otomatis diarahkan ke route baru", async ({ page }) => {
   await expect(page).toHaveURL(/\/reports\?tab=audit/);
 
   await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/(app\/dashboard|planning|reports)/);
+  await expect(page).toHaveURL(/\/(planning|reports)/);
+});
+
+test("route /app/* sebagai compatibility redirect ke canonical", async ({ page }) => {
+  test.setTimeout(120_000);
+  await login(page);
+
+  await page.goto("/app", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/planning/);
+
+  await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/planning/);
+
+  await page.goto("/app/plans", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/planning/);
+
+  await page.goto("/app/production", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/production/);
+
+  await page.goto("/app/deliveries", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/delivery/);
+
+  await page.goto("/app/reports", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/reports/);
 });

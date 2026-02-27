@@ -94,10 +94,25 @@ Troubleshooting cepat:
 - catatan defect + status fix.
 - rekaman langkah UAT per role.
 
+## 5.1) Matrix Tombol Kritis (Canonical Route)
+Semua aksi utama wajib punya `data-testid` stabil untuk E2E deterministik:
+1. Planning: prefix `planning-*`
+2. Procurement/Receiving: prefix `procurement-*`
+3. Inventory/Opname: prefix `inventory-*`
+4. Production: prefix `production-*`
+5. Delivery (manifest/verification/disputes tab): prefix `delivery-*`
+6. Reports + Advanced tabs: prefix `reports-*`
+7. Settings tenant: prefix `settings-*`
+8. Master data: prefix `master-*`
+9. Admin pusat SPPG: prefix `sppg-admin-*`
+10. Incidents/Waste/Recall: prefix `incidents-*`
+11. Verification (legacy page compatibility): prefix `verification-*`
+12. Disputes (legacy page compatibility): prefix `disputes-*`
+
 ## 6) Evidence Freeze Baseline (Solo Operator)
-- Timestamp freeze: `2026-02-27 01:03:01 +07:00`
+- Timestamp freeze: `2026-02-27 07:58:13 +07:00`
 - Branch kerja: `feat/rc-local-audit-coverage`
-- Commit head freeze: `094b941`
+- Commit head freeze: `4a52fba`
 - Hasil gate:
   - `npm test` -> pass
   - `npm run build` -> pass

@@ -122,7 +122,7 @@ export default function VerificationPage() {
         subtitle="Verifikasi serah-terima oleh verifier sekolah. Mismatch wajib reason dan bukti."
         icon={CheckCheck}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="verification-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -180,7 +180,7 @@ export default function VerificationPage() {
             />
           ) : null}
 
-          <button className="btn btn-primary" type="submit" disabled={busy || !selectedStop || !canVerify}>
+          <button className="btn btn-primary" data-testid="verification-submit" type="submit" disabled={busy || !selectedStop || !canVerify}>
             Verify Selected Stop
           </button>
           {!canVerify ? <div className="badge badge-warn">Role aktif tidak memiliki izin verify</div> : null}
@@ -190,7 +190,7 @@ export default function VerificationPage() {
       <section className="card">
         <div className="card-header">
           <strong>Pending Verification Stops</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
+          <button className="btn btn-secondary" data-testid="verification-refresh-list" onClick={() => load()}>
             Refresh
           </button>
         </div>
@@ -211,7 +211,7 @@ export default function VerificationPage() {
               {stops.map((stop) => (
                 <tr key={stop.delivery_stop_id}>
                   <td>
-                    <button className="btn btn-secondary" onClick={() => setSelectedStopId(stop.delivery_stop_id)}>
+                    <button className="btn btn-secondary" data-testid="verification-select-stop" onClick={() => setSelectedStopId(stop.delivery_stop_id)}>
                       Pilih
                     </button>
                   </td>

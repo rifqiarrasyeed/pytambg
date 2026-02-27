@@ -126,7 +126,7 @@ export default function DashboardPage() {
         subtitle="Monitoring planned vs produced vs delivered vs verified lintas aktivitas harian."
         icon={Activity}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()} disabled={busy}>
+          <button className="btn btn-secondary icon-btn" data-testid="dashboard-refresh" onClick={() => load()} disabled={busy}>
             <RefreshCw size={16} />
             <span>{busy ? "Muat..." : "Refresh"}</span>
           </button>
@@ -166,7 +166,7 @@ export default function DashboardPage() {
               <input className="input" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
             </label>
             <div className="action-row" style={{ alignItems: "end" }}>
-              <button className="btn btn-primary icon-btn" onClick={() => load()} disabled={busy}>
+              <button className="btn btn-primary icon-btn" data-testid="dashboard-apply-trend" onClick={() => load()} disabled={busy}>
                 <RefreshCw size={16} />
                 <span>Terapkan</span>
               </button>
@@ -218,11 +218,11 @@ export default function DashboardPage() {
               <input className="input" value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Wajib saat unlock" />
             </label>
             <div className="mobile-sticky-actions">
-              <button className="btn btn-secondary icon-btn" onClick={lockPeriod} disabled={busy || !periodDate}>
+              <button className="btn btn-secondary icon-btn" data-testid="dashboard-lock-period" onClick={lockPeriod} disabled={busy || !periodDate}>
                 <Lock size={16} />
                 <span>Lock</span>
               </button>
-              <button className="btn btn-secondary icon-btn" onClick={unlockPeriod} disabled={busy || !periodDate}>
+              <button className="btn btn-secondary icon-btn" data-testid="dashboard-unlock-period" onClick={unlockPeriod} disabled={busy || !periodDate}>
                 <Unlock size={16} />
                 <span>Unlock</span>
               </button>

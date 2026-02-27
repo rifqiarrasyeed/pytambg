@@ -300,7 +300,7 @@ export default function MasterDataPage() {
         subtitle="Kelola sekolah, rute, vendor, item, resep, dan mapping verifikasi lintas SPPG."
         icon={Database}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => loadAll()} disabled={busy}>
+          <button className="btn btn-secondary icon-btn" data-testid="master-refresh" onClick={() => loadAll()} disabled={busy}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -319,7 +319,7 @@ export default function MasterDataPage() {
         <div className="card-body">
           <div className="action-row" style={{ flexWrap: "wrap" }}>
             {tabs.map((row) => (
-              <button key={row.key} className={tab === row.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setTab(row.key)}>
+              <button key={row.key} data-testid={`master-tab-${row.key}`} className={tab === row.key ? "btn btn-primary" : "btn btn-secondary"} onClick={() => setTab(row.key)}>
                 {row.label}
               </button>
             ))}
@@ -338,7 +338,7 @@ export default function MasterDataPage() {
             </div>
             <label>Alamat<input className="input" value={schoolForm.address} onChange={(e) => setSchoolForm({ ...schoolForm, address: e.target.value })} /></label>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveSchool} disabled={busy}>{schoolForm.id ? "Update" : "Tambah"}</button>
+              <button className="btn btn-primary" data-testid="master-save-school" onClick={saveSchool} disabled={busy}>{schoolForm.id ? "Update" : "Tambah"}</button>
               {schoolForm.id ? <button className="btn btn-secondary" onClick={() => setSchoolForm({ id: "", code: "", name: "", address: "", sla_minutes: 60 })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
@@ -375,7 +375,7 @@ export default function MasterDataPage() {
               </label>
             </div>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveRoute} disabled={busy}>{routeForm.id ? "Update" : "Tambah"}</button>
+              <button className="btn btn-primary" data-testid="master-save-route" onClick={saveRoute} disabled={busy}>{routeForm.id ? "Update" : "Tambah"}</button>
               {routeForm.id ? <button className="btn btn-secondary" onClick={() => setRouteForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
@@ -412,7 +412,7 @@ export default function MasterDataPage() {
               </label>
             </div>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveVendor} disabled={busy}>{vendorForm.id ? "Update" : "Tambah"}</button>
+              <button className="btn btn-primary" data-testid="master-save-vendor" onClick={saveVendor} disabled={busy}>{vendorForm.id ? "Update" : "Tambah"}</button>
               {vendorForm.id ? <button className="btn btn-secondary" onClick={() => setVendorForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
@@ -456,7 +456,7 @@ export default function MasterDataPage() {
               </label>
             </div>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveItem} disabled={busy}>{itemForm.id ? "Update" : "Tambah"}</button>
+              <button className="btn btn-primary" data-testid="master-save-item" onClick={saveItem} disabled={busy}>{itemForm.id ? "Update" : "Tambah"}</button>
               {itemForm.id ? <button className="btn btn-secondary" onClick={() => setItemForm((prev) => ({ ...prev, id: "", sku: "", name: "", track_expiry: false, standard_cost: 0 }))}>Batal</button> : null}
             </div>
             <div className="table-wrap">
@@ -519,7 +519,7 @@ export default function MasterDataPage() {
             </div>
             <div className="action-row">
               <button className="btn btn-secondary" onClick={() => setRecipeForm((prev) => ({ ...prev, items: [...prev.items, emptyRecipeItem()] }))}>Tambah BOM</button>
-              <button className="btn btn-primary" onClick={saveRecipe} disabled={busy}>{recipeForm.id ? "Update" : "Tambah"}</button>
+              <button className="btn btn-primary" data-testid="master-save-recipe" onClick={saveRecipe} disabled={busy}>{recipeForm.id ? "Update" : "Tambah"}</button>
               {recipeForm.id ? <button className="btn btn-secondary" onClick={() => setRecipeForm({ id: "", code: "", name: "", yield_portions: 100, status: "DRAFT", items: [emptyRecipeItem()] })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
@@ -567,7 +567,7 @@ export default function MasterDataPage() {
               </table>
             </div>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveRouteMap} disabled={busy || !routeMapRouteId}>Simpan Mapping</button>
+              <button className="btn btn-primary" data-testid="master-save-route-map" onClick={saveRouteMap} disabled={busy || !routeMapRouteId}>Simpan Mapping</button>
             </div>
           </div>
         </section>
@@ -598,7 +598,7 @@ export default function MasterDataPage() {
               </table>
             </div>
             <div className="action-row">
-              <button className="btn btn-primary" onClick={saveVerifierMap} disabled={busy || !verifierSchoolId}>Simpan Verifier</button>
+              <button className="btn btn-primary" data-testid="master-save-verifier-map" onClick={saveVerifierMap} disabled={busy || !verifierSchoolId}>Simpan Verifier</button>
               <span className="badge badge-neutral">{schoolLabelById.get(verifierSchoolId) ?? "-"}</span>
             </div>
           </div>

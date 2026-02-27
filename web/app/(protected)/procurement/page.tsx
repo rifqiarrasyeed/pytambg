@@ -234,7 +234,7 @@ export default function ProcurementPage() {
         subtitle="Kelola PO, approval, dan posting GRN dengan idempotency dan bukti faktur."
         icon={ShoppingCart}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="procurement-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -287,11 +287,12 @@ export default function ProcurementPage() {
           </div>
 
           <div className="action-row">
-            <button className="btn btn-primary" type="submit" disabled={busy || !canProcurementWrite}>
+            <button className="btn btn-primary" data-testid="procurement-create-po" type="submit" disabled={busy || !canProcurementWrite}>
               Buat PO
             </button>
             <button
               type="button"
+              data-testid="procurement-submit-po"
               className="btn btn-secondary"
               onClick={() => runPoAction("submit")}
               disabled={busy || !selectedPurchaseId || !canProcurementWrite}
@@ -300,6 +301,7 @@ export default function ProcurementPage() {
             </button>
             <button
               type="button"
+              data-testid="procurement-approve-po"
               className="btn btn-secondary"
               onClick={() => runPoAction("approve")}
               disabled={busy || !selectedPurchaseId || !canProcurementApprove}
@@ -372,7 +374,7 @@ export default function ProcurementPage() {
             onUploaded={setGrnAttachment}
           />
 
-          <button className="btn btn-primary" type="submit" disabled={busy || !selectedPurchaseId || !canReceiptPost}>
+          <button className="btn btn-primary" data-testid="procurement-post-grn" type="submit" disabled={busy || !selectedPurchaseId || !canReceiptPost}>
             Post GRN
           </button>
           {!canReceiptPost ? <div className="badge badge-warn">Role aktif tidak memiliki izin receipt.post</div> : null}
@@ -382,7 +384,7 @@ export default function ProcurementPage() {
       <section className="card">
         <div className="card-header">
           <strong>Daftar PO & GRN</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
+          <button className="btn btn-secondary" data-testid="procurement-refresh-list" onClick={() => load()}>
             Refresh
           </button>
         </div>
@@ -402,7 +404,7 @@ export default function ProcurementPage() {
                 {purchases.map((po) => (
                   <tr key={po.id}>
                     <td>
-                      <button className="btn btn-secondary" onClick={() => setSelectedPurchaseId(po.id)}>
+                      <button className="btn btn-secondary" data-testid="procurement-select-po" onClick={() => setSelectedPurchaseId(po.id)}>
                         Pilih
                       </button>
                     </td>

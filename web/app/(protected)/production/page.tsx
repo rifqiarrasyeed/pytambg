@@ -134,7 +134,7 @@ export default function ProductionPage() {
         subtitle="Jalankan start/finalize produksi dengan QC minimum dan output terverifikasi."
         icon={Factory}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="production-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Refresh</span>
           </button>
@@ -166,7 +166,7 @@ export default function ProductionPage() {
               <input className="input" type="date" value={createForm.run_date} onChange={(e) => setCreateForm({ ...createForm, run_date: e.target.value })} required />
             </label>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy}>
+          <button className="btn btn-primary" data-testid="production-create-run" type="submit" disabled={busy}>
             Buat Run
           </button>
         </form>
@@ -232,10 +232,10 @@ export default function ProductionPage() {
           </div>
 
           <div className="action-row">
-            <button className="btn btn-secondary" type="button" onClick={() => runAction("start")} disabled={busy || !selectedRunId}>
+            <button className="btn btn-secondary" data-testid="production-start-selected" type="button" onClick={() => runAction("start")} disabled={busy || !selectedRunId}>
               Start Selected
             </button>
-            <button className="btn btn-primary" type="button" onClick={() => runAction("finalize")} disabled={busy || !selectedRunId}>
+            <button className="btn btn-primary" data-testid="production-finalize-selected" type="button" onClick={() => runAction("finalize")} disabled={busy || !selectedRunId}>
               Finalize Selected
             </button>
           </div>
@@ -245,7 +245,7 @@ export default function ProductionPage() {
       <section className="card">
         <div className="card-header">
           <strong>Daftar Production Runs</strong>
-          <button className="btn btn-secondary" onClick={() => load()}>
+          <button className="btn btn-secondary" data-testid="production-refresh-list" onClick={() => load()}>
             Refresh
           </button>
         </div>
@@ -263,7 +263,7 @@ export default function ProductionPage() {
               {runs.map((run) => (
                 <tr key={run.id}>
                   <td>
-                    <button className="btn btn-secondary" onClick={() => setSelectedRunId(run.id)}>
+                    <button className="btn btn-secondary" data-testid="production-select-run" onClick={() => setSelectedRunId(run.id)}>
                       Pilih
                     </button>
                     </td>

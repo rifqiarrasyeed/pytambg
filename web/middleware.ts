@@ -5,6 +5,20 @@ import { env } from "@/lib/core/env";
 import { ACCESS_COOKIE } from "@/lib/constants";
 
 const PUBLIC_PATHS = ["/", "/pricing", "/login"];
+const APP_COMPAT_REDIRECTS: Record<string, string> = {
+  "/app": "/planning",
+  "/app/dashboard": "/planning",
+  "/app/plans": "/planning",
+  "/app/production": "/production",
+  "/app/deliveries": "/delivery",
+  "/app/reports": "/reports",
+  "/app/master": "/master-data",
+  "/app/master/schools": "/master-data",
+  "/app/master/routes": "/master-data",
+  "/app/master/users": "/master-data",
+  "/app/settings": "/settings",
+  "/app/billing": "/reports?tab=overview"
+};
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/api/auth") || pathname.startsWith("/api/billing/midtrans/webhook");
@@ -40,6 +54,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/planning", request.url));
   }
 
+  const compatTarget = APP_COMPAT_REDIRECTS[pathname];
+  if (compatTarget) {
+    return NextResponse.redirect(new URL(compatTarget, request.url));
+  }
+
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
@@ -59,7 +78,7 @@ export async function middleware(request: NextRequest) {
     const platformRoles = (token.platformRoles as string[] | undefined) ?? [];
     const allowed = platformRoles.includes("PLATFORM_ADMIN") || platformRoles.includes("PLATFORM_OPS");
     if (!allowed) {
-      return NextResponse.redirect(new URL("/app/dashboard", request.url));
+      return NextResponse.redirect(new URL("/reports", request.url));
     }
   }
 
