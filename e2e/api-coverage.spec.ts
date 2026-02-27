@@ -263,3 +263,49 @@ test("workspace summary/alerts/kpi tersedia untuk laporan harian", async ({ requ
   expect(typeof kpiBody.delivered).toBe("number");
   expect(typeof kpiBody.verified).toBe("number");
 });
+
+test("create master data menulis audit log lengkap", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const headers = authHeaders(auth.access_token);
+  const code = `SCH-${uniqueSuffix("audit")}`;
+
+  const createRes = await request.post(`${API_BASE}/schools`, {
+    headers,
+    data: {
+      code,
+      name: `Sekolah Audit ${code}`,
+      address: "Jl. Audit Coverage",
+      sla_minutes: 60
+    }
+  });
+  expect(createRes.status(), await createRes.text()).toBe(201);
+  const created = (await createRes.json()) as { id: string };
+
+  const auditRes = await request.get(
+    `${API_BASE}/audit-logs?entity_table=schools&entity_id=${created.id}&action=CREATE&page=1&page_size=20`,
+    { headers }
+  );
+  expect(auditRes.status(), await auditRes.text()).toBe(200);
+  const audit = (await auditRes.json()) as {
+    data: Array<{
+      entity_table: string;
+      entity_id: string;
+      action: string;
+      actor_user_id: string | null;
+      actor_role: string | null;
+      old_value: Record<string, unknown> | null;
+      new_value: Record<string, unknown> | null;
+      request_id: string | null;
+    }>;
+  };
+  expect(audit.data.length).toBeGreaterThan(0);
+  const row = audit.data[0];
+  expect(row.entity_table).toBe("schools");
+  expect(row.entity_id).toBe(created.id);
+  expect(row.action).toBe("CREATE");
+  expect(typeof row.actor_user_id).toBe("string");
+  expect(typeof row.actor_role).toBe("string");
+  expect(typeof row.old_value).toBe("object");
+  expect(typeof row.new_value).toBe("object");
+  expect(typeof row.request_id).toBe("string");
+});

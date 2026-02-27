@@ -66,8 +66,8 @@ export default function SppgAdminPage() {
     setError(null);
     try {
       const [sppgRes, userRes] = await Promise.all([
-        apiClient("/api/proxy/sppg?page=1&page_size=200"),
-        apiClient("/api/proxy/users?page=1&page_size=200")
+        apiClient("/api/proxy/sppg?page=1&page_size=100"),
+        apiClient("/api/proxy/users?page=1&page_size=100")
       ]);
       const sppgRows = readData<SppgRow>(sppgRes);
       const userRows = readData<UserRow>(userRes);
@@ -89,7 +89,7 @@ export default function SppgAdminPage() {
   const loadAssignments = async (targetSppgId: string) => {
     if (!targetSppgId) return;
     try {
-      const response = await apiClient(`/api/proxy/sppg/${targetSppgId}/assignments?page=1&page_size=200`);
+      const response = await apiClient(`/api/proxy/sppg/${targetSppgId}/assignments?page=1&page_size=100`);
       setAssignments(readData<AssignmentRow>(response));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memuat assignments");

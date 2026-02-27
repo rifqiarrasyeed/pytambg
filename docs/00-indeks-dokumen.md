@@ -41,8 +41,8 @@ Dokumen ini menjadi pintu masuk utama untuk memahami sistem MBG Ops yang berjala
 
 ## Baseline RC Terbaru
 - Branch: `feat/rc-local-audit-coverage`
-- Head freeze: `4a52fba`
-- Timestamp freeze: `2026-02-27 07:58:13 +07:00`
+- Head freeze sebelumnya: `4a52fba`
+- Snapshot hardening lanjutan: `2026-02-27 09:32:08 +07:00` (local-only, pre-push commit fase ini)
 - Dokumen acuan QA: `08-qa-uat-regression.md`
 - Gate acuan: `npm run qa:full` (wajib pass 2x berurutan)
 - Canonical route operasional: `/planning`, `/procurement`, `/inventory`, `/production`, `/delivery`, `/reports`

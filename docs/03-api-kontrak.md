@@ -69,6 +69,10 @@ Response:
   "has_next": false
 }
 ```
+Catatan limit:
+- `page_size` maksimum `100`.
+- Endpoint audit yang memakai `limit` juga maksimum `100`.
+- Jika melewati batas, backend mengembalikan `VALIDATION_ERROR`.
 
 ## Endpoint Inti
 ### Auth

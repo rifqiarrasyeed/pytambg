@@ -152,7 +152,7 @@ export function AppShell({ assignments, activeSppgId, children }: AppShellProps)
 
   return (
     <main className={`app-shell ${menuOpen ? "menu-open" : ""}`}>
-      <button className="mobile-nav-btn" onClick={() => setMenuOpen((value) => !value)} aria-label="Toggle navigation">
+      <button className="mobile-nav-btn" data-testid="shell-toggle-menu" onClick={() => setMenuOpen((value) => !value)} aria-label="Toggle navigation">
         Menu
       </button>
 
@@ -190,13 +190,13 @@ export function AppShell({ assignments, activeSppgId, children }: AppShellProps)
           })}
         </nav>
 
-        <button className="btn btn-secondary icon-btn" onClick={logout} style={{ width: "100%" }}>
+        <button className="btn btn-secondary icon-btn" data-testid="shell-logout" onClick={logout} style={{ width: "100%" }}>
           <Shield size={16} />
           <span>Logout</span>
         </button>
       </aside>
 
-      {menuOpen ? <button className="app-overlay" aria-label="Close navigation" onClick={() => setMenuOpen(false)} /> : null}
+      {menuOpen ? <button className="app-overlay" data-testid="shell-close-menu" aria-label="Close navigation" onClick={() => setMenuOpen(false)} /> : null}
       <section className="app-content">{children}</section>
     </main>
   );

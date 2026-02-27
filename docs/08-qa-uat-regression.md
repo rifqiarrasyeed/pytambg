@@ -109,10 +109,15 @@ Semua aksi utama wajib punya `data-testid` stabil untuk E2E deterministik:
 11. Verification (legacy page compatibility): prefix `verification-*`
 12. Disputes (legacy page compatibility): prefix `disputes-*`
 
+Coverage E2E terbaru:
+1. `e2e/ui-actions.spec.ts` memverifikasi aksi sekunder `Edit/Batal`, refresh audit/filter, dan toggle menu mobile.
+2. `e2e/api-coverage.spec.ts` memverifikasi audit log terbentuk setelah mutasi master data.
+
 ## 6) Evidence Freeze Baseline (Solo Operator)
-- Timestamp freeze: `2026-02-27 07:58:13 +07:00`
+- Timestamp freeze sebelumnya: `2026-02-27 07:58:13 +07:00`
+- Snapshot hardening lanjutan: `2026-02-27 09:32:08 +07:00` (local-only, pre-push commit fase ini)
 - Branch kerja: `feat/rc-local-audit-coverage`
-- Commit head freeze: `4a52fba`
+- Commit head freeze sebelumnya: `4a52fba`
 - Hasil gate:
   - `npm test` -> pass
   - `npm run build` -> pass

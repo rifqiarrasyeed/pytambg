@@ -118,4 +118,13 @@ test("route /app/* sebagai compatibility redirect ke canonical", async ({ page }
 
   await page.goto("/app/reports", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/reports/);
+
+  await page.goto("/app/master/schools", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/master-data/);
+
+  await page.goto("/app/settings", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/settings/);
+
+  await page.goto("/app/billing", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/reports\?tab=overview/);
 });

@@ -120,11 +120,11 @@ Service:
 Branch freeze:
 - `feat/rc-local-audit-coverage`
 
-Head saat freeze:
+Head baseline sebelumnya:
 - `4a52fba docs+stability: freeze rc baseline + sync docs + deterministic e2e strict`
 
-Timestamp freeze:
-- `2026-02-27 07:58:13 +07:00`
+Snapshot hardening lanjutan:
+- `2026-02-27 09:32:08 +07:00` (local-only, pre-push commit fase ini)
 
 Gate utama:
 ```bash
@@ -140,6 +140,11 @@ Status validasi terakhir:
 5. `npm run e2e:strict` -> pass
 6. `npm run qa:full` -> pass run #1
 7. `npm run qa:full` -> pass run #2
+
+Perbaikan reliability terbaru:
+1. Normalisasi query list FE ke `page_size <= 100` agar tidak memicu `VALIDATION_ERROR` pada halaman `Master Data`, `Audit`, dan `Admin Pusat`.
+2. Matrix E2E UI action ditambah (`e2e/ui-actions.spec.ts`) untuk validasi tombol sekunder, refresh audit, dan toggle menu mobile.
+3. Instrumentasi `data-testid` ditambah pada shell dan halaman advanced untuk menutup celah silent-fail UI.
 
 Catatan reliability:
 1. `e2e:strict` sekarang otomatis pakai server production (`npm run start` + `npm run web:start`) jika build tersedia (`dist/index.js` dan `web/.next/BUILD_ID`).

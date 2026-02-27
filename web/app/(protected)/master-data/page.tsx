@@ -92,11 +92,11 @@ export default function MasterDataPage() {
     setError(null);
     try {
       const [schoolsRes, routesRes, vendorsRes, itemsRes, recipesRes, lookupRes] = await Promise.all([
-        apiClient("/api/proxy/schools?page=1&page_size=200"),
-        apiClient("/api/proxy/routes?page=1&page_size=200"),
-        apiClient("/api/proxy/vendors?page=1&page_size=200"),
-        apiClient("/api/proxy/items?page=1&page_size=200"),
-        apiClient("/api/proxy/recipes?page=1&page_size=200"),
+        apiClient("/api/proxy/schools?page=1&page_size=100"),
+        apiClient("/api/proxy/routes?page=1&page_size=100"),
+        apiClient("/api/proxy/vendors?page=1&page_size=100"),
+        apiClient("/api/proxy/items?page=1&page_size=100"),
+        apiClient("/api/proxy/recipes?page=1&page_size=100"),
         apiClient<LookupMasterResponse>("/api/proxy/lookups/master?include=schools,routes,vendors,items,recipes,units,verifiers")
       ]);
       setSchools(readData<School>(schoolsRes));
@@ -339,7 +339,7 @@ export default function MasterDataPage() {
             <label>Alamat<input className="input" value={schoolForm.address} onChange={(e) => setSchoolForm({ ...schoolForm, address: e.target.value })} /></label>
             <div className="action-row">
               <button className="btn btn-primary" data-testid="master-save-school" onClick={saveSchool} disabled={busy}>{schoolForm.id ? "Update" : "Tambah"}</button>
-              {schoolForm.id ? <button className="btn btn-secondary" onClick={() => setSchoolForm({ id: "", code: "", name: "", address: "", sla_minutes: 60 })}>Batal</button> : null}
+              {schoolForm.id ? <button className="btn btn-secondary" data-testid="master-cancel-school" onClick={() => setSchoolForm({ id: "", code: "", name: "", address: "", sla_minutes: 60 })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -347,7 +347,7 @@ export default function MasterDataPage() {
                 <tbody>
                   {schools.map((row) => (
                     <tr key={row.id}>
-                      <td><button className="btn btn-secondary" onClick={() => setSchoolForm({ id: row.id, code: row.code, name: row.name, address: row.address ?? "", sla_minutes: row.sla_minutes })}>Edit</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-edit-school" onClick={() => setSchoolForm({ id: row.id, code: row.code, name: row.name, address: row.address ?? "", sla_minutes: row.sla_minutes })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
                       <td>{row.sla_minutes}</td>
@@ -376,7 +376,7 @@ export default function MasterDataPage() {
             </div>
             <div className="action-row">
               <button className="btn btn-primary" data-testid="master-save-route" onClick={saveRoute} disabled={busy}>{routeForm.id ? "Update" : "Tambah"}</button>
-              {routeForm.id ? <button className="btn btn-secondary" onClick={() => setRouteForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
+              {routeForm.id ? <button className="btn btn-secondary" data-testid="master-cancel-route" onClick={() => setRouteForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -384,7 +384,7 @@ export default function MasterDataPage() {
                 <tbody>
                   {routes.map((row) => (
                     <tr key={row.id}>
-                      <td><button className="btn btn-secondary" onClick={() => setRouteForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-edit-route" onClick={() => setRouteForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
                       <td><StatusBadge value={row.status} /></td>
@@ -413,7 +413,7 @@ export default function MasterDataPage() {
             </div>
             <div className="action-row">
               <button className="btn btn-primary" data-testid="master-save-vendor" onClick={saveVendor} disabled={busy}>{vendorForm.id ? "Update" : "Tambah"}</button>
-              {vendorForm.id ? <button className="btn btn-secondary" onClick={() => setVendorForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
+              {vendorForm.id ? <button className="btn btn-secondary" data-testid="master-cancel-vendor" onClick={() => setVendorForm({ id: "", code: "", name: "", status: "ACTIVE" })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -421,7 +421,7 @@ export default function MasterDataPage() {
                 <tbody>
                   {vendors.map((row) => (
                     <tr key={row.id}>
-                      <td><button className="btn btn-secondary" onClick={() => setVendorForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-edit-vendor" onClick={() => setVendorForm({ id: row.id, code: row.code, name: row.name, status: row.status })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
                       <td><StatusBadge value={row.status} /></td>
@@ -457,7 +457,7 @@ export default function MasterDataPage() {
             </div>
             <div className="action-row">
               <button className="btn btn-primary" data-testid="master-save-item" onClick={saveItem} disabled={busy}>{itemForm.id ? "Update" : "Tambah"}</button>
-              {itemForm.id ? <button className="btn btn-secondary" onClick={() => setItemForm((prev) => ({ ...prev, id: "", sku: "", name: "", track_expiry: false, standard_cost: 0 }))}>Batal</button> : null}
+              {itemForm.id ? <button className="btn btn-secondary" data-testid="master-cancel-item" onClick={() => setItemForm((prev) => ({ ...prev, id: "", sku: "", name: "", track_expiry: false, standard_cost: 0 }))}>Batal</button> : null}
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -465,7 +465,7 @@ export default function MasterDataPage() {
                 <tbody>
                   {items.map((row) => (
                     <tr key={row.id}>
-                      <td><button className="btn btn-secondary" onClick={() => setItemForm({ id: row.id, sku: row.sku, name: row.name, unit_id: row.unit_id, track_expiry: row.track_expiry, standard_cost: Number(row.standard_cost) })}>Edit</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-edit-item" onClick={() => setItemForm({ id: row.id, sku: row.sku, name: row.name, unit_id: row.unit_id, track_expiry: row.track_expiry, standard_cost: Number(row.standard_cost) })}>Edit</button></td>
                       <td>{row.sku}</td>
                       <td>{row.name}</td>
                       <td>{unitLabelById.get(row.unit_id) ?? row.unit_id}</td>
@@ -511,16 +511,16 @@ export default function MasterDataPage() {
                       </td>
                       <td><input className="input" type="number" step="0.0001" value={row.qty_per_portion} onChange={(e) => setRecipeForm((prev) => ({ ...prev, items: prev.items.map((x, i) => (i === idx ? { ...x, qty_per_portion: Number(e.target.value) } : x)) }))} /></td>
                       <td><input className="input" type="number" step="0.01" value={row.loss_factor} onChange={(e) => setRecipeForm((prev) => ({ ...prev, items: prev.items.map((x, i) => (i === idx ? { ...x, loss_factor: Number(e.target.value) } : x)) }))} /></td>
-                      <td><button className="btn btn-secondary" onClick={() => setRecipeForm((prev) => ({ ...prev, items: prev.items.length > 1 ? prev.items.filter((_, i) => i !== idx) : prev.items }))}>Hapus</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-delete-recipe-item" onClick={() => setRecipeForm((prev) => ({ ...prev, items: prev.items.length > 1 ? prev.items.filter((_, i) => i !== idx) : prev.items }))}>Hapus</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="action-row">
-              <button className="btn btn-secondary" onClick={() => setRecipeForm((prev) => ({ ...prev, items: [...prev.items, emptyRecipeItem()] }))}>Tambah BOM</button>
+              <button className="btn btn-secondary" data-testid="master-add-recipe-item" onClick={() => setRecipeForm((prev) => ({ ...prev, items: [...prev.items, emptyRecipeItem()] }))}>Tambah BOM</button>
               <button className="btn btn-primary" data-testid="master-save-recipe" onClick={saveRecipe} disabled={busy}>{recipeForm.id ? "Update" : "Tambah"}</button>
-              {recipeForm.id ? <button className="btn btn-secondary" onClick={() => setRecipeForm({ id: "", code: "", name: "", yield_portions: 100, status: "DRAFT", items: [emptyRecipeItem()] })}>Batal</button> : null}
+              {recipeForm.id ? <button className="btn btn-secondary" data-testid="master-cancel-recipe" onClick={() => setRecipeForm({ id: "", code: "", name: "", yield_portions: 100, status: "DRAFT", items: [emptyRecipeItem()] })}>Batal</button> : null}
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -528,7 +528,7 @@ export default function MasterDataPage() {
                 <tbody>
                   {recipes.map((row) => (
                     <tr key={row.id}>
-                      <td><button className="btn btn-secondary" onClick={() => setRecipeForm({ id: row.id, code: row.code, name: row.name, yield_portions: Number(row.yield_portions), status: row.status, items: row.items?.length ? row.items : [emptyRecipeItem()] })}>Edit</button></td>
+                      <td><button className="btn btn-secondary" data-testid="master-edit-recipe" onClick={() => setRecipeForm({ id: row.id, code: row.code, name: row.name, yield_portions: Number(row.yield_portions), status: row.status, items: row.items?.length ? row.items : [emptyRecipeItem()] })}>Edit</button></td>
                       <td>{row.code}</td>
                       <td>{row.name}</td>
                       <td><StatusBadge value={row.status} /></td>

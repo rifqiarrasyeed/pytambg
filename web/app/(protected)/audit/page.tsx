@@ -34,7 +34,7 @@ export default function AuditPage() {
     actor_user_id: "",
     start_at: "",
     end_at: "",
-    limit: "200"
+    limit: "100"
   });
   const userById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
@@ -49,7 +49,7 @@ export default function AuditPage() {
     try {
       const [auditData, usersData] = await Promise.all([
         apiClient<{ data: AuditRow[] }>(`/api/proxy/audit-logs?${params.toString()}`),
-        apiClient<{ data: UserLookup[] }>("/api/proxy/users?page=1&page_size=200")
+        apiClient<{ data: UserLookup[] }>("/api/proxy/users?page=1&page_size=100")
       ]);
       const activeUsers = usersData.data ?? [];
       setUsers(activeUsers);
@@ -70,7 +70,7 @@ export default function AuditPage() {
         subtitle="Forensik perubahan data kritikal: actor, waktu, entity, dan diff old/new."
         icon={ScrollText}
         actions={
-          <button className="btn btn-secondary icon-btn" onClick={() => load()}>
+          <button className="btn btn-secondary icon-btn" data-testid="audit-refresh" onClick={() => load()}>
             <RefreshCw size={16} />
             <span>Filter</span>
           </button>
