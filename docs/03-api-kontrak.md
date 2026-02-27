@@ -153,6 +153,7 @@ Catatan limit:
 - `GET /workspace/summary`
 - `GET /workspace/alerts`
 - `GET /workspace/kpi`
+- `GET /workspace/stream` (SSE realtime reports + delivery)
 - `GET /reports/kpi`
 - `GET /reports/kpi-trend`
 - `POST /reports/export`
@@ -168,6 +169,34 @@ Catatan limit:
 - `POST /attachments/complete`
 - `GET /attachments/:id/signed-url`
 - `POST /attachments` (opsional metadata insert langsung jika dipakai)
+
+## Kontrak Realtime Workspace (SSE, Additive)
+Endpoint:
+- `GET /workspace/stream`
+
+Query:
+1. `topics` (csv): `reports`, `delivery` (default `reports`)
+2. `delivery_id` (uuid, opsional, untuk fokus manifest tertentu)
+3. `interval_seconds` (default `10`, min `5`, max `60`)
+
+Header respons:
+- `Content-Type: text/event-stream`
+- `Cache-Control: no-cache`
+
+Event:
+1. `hello`
+2. `reports.snapshot`
+3. `delivery.snapshot`
+4. `heartbeat`
+5. `error`
+
+Contoh:
+`GET /workspace/stream?topics=reports,delivery&interval_seconds=10`
+
+Catatan keamanan:
+1. Wajib auth token valid.
+2. Wajib `active_sppg` tersedia.
+3. Scope data selalu tenant aktif; `delivery_id` tidak bisa menembus tenant lain.
 
 ## Idempotensi Wajib
 Header:

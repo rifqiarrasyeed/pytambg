@@ -4,6 +4,46 @@ import { authHeaders, futureDate, loginAs, uniqueSuffix } from "./support";
 
 const API_BASE = process.env.E2E_API_BASE_URL ?? "http://127.0.0.1:3000";
 
+async function readSseUntil(params: {
+  url: string;
+  headers: Record<string, string>;
+  waitForEvent: string;
+  timeoutMs?: number;
+}): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), params.timeoutMs ?? 20_000);
+  try {
+    const response = await fetch(params.url, {
+      method: "GET",
+      headers: params.headers,
+      signal: controller.signal
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toContain("text/event-stream");
+    expect(response.body).toBeTruthy();
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let payload = "";
+
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      payload += decoder.decode(chunk.value, { stream: true });
+      if (payload.includes(`event: ${params.waitForEvent}`)) {
+        break;
+      }
+    }
+
+    return payload;
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+}
+
 test("login invalid ditolak", async ({ request }) => {
   const response = await request.post(`${API_BASE}/auth/login`, {
     data: { email: "superadmin@mbg.local", password: "salah-total" }
@@ -262,6 +302,42 @@ test("workspace summary/alerts/kpi tersedia untuk laporan harian", async ({ requ
   expect(typeof kpiBody.produced).toBe("number");
   expect(typeof kpiBody.delivered).toBe("number");
   expect(typeof kpiBody.verified).toBe("number");
+});
+
+test("workspace stream tanpa token ditolak", async ({ request }) => {
+  const response = await request.get(`${API_BASE}/workspace/stream?topics=reports&interval_seconds=5`);
+  expect(response.status()).toBe(401);
+});
+
+test("workspace stream menolak topics invalid", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const response = await request.get(`${API_BASE}/workspace/stream?topics=reports,invalid-topic&interval_seconds=5`, {
+    headers: authHeaders(auth.access_token)
+  });
+  expect(response.status()).toBe(422);
+});
+
+test("workspace stream reports mengirim hello + reports.snapshot", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const payload = await readSseUntil({
+    url: `${API_BASE}/workspace/stream?topics=reports&interval_seconds=5`,
+    headers: authHeaders(auth.access_token),
+    waitForEvent: "reports.snapshot"
+  });
+
+  expect(payload).toContain("event: hello");
+  expect(payload).toContain("event: reports.snapshot");
+});
+
+test("workspace stream delivery mengirim delivery.snapshot", async ({ request }) => {
+  const auth = await loginAs(request, "superadmin");
+  const payload = await readSseUntil({
+    url: `${API_BASE}/workspace/stream?topics=delivery&interval_seconds=5`,
+    headers: authHeaders(auth.access_token),
+    waitForEvent: "delivery.snapshot"
+  });
+
+  expect(payload).toContain("event: delivery.snapshot");
 });
 
 test("create master data menulis audit log lengkap", async ({ request }) => {

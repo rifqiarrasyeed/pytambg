@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw, Truck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AttachmentUploader } from "@/components/attachment-uploader";
 import { ErrorState } from "@/components/feedback-states";
@@ -9,9 +9,10 @@ import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { apiClient, readData } from "@/lib/api-client";
 import type { CompletedAttachment } from "@/lib/attachments";
-import type { DeliveryTab, LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
+import type { DeliverySnapshotEvent, DeliveryTab, LookupMasterResponse, PaginatedResponse } from "@/lib/contracts";
 import { localDateTimeToIso } from "@/lib/datetime";
 import { resolveAllowedDeliveryTab } from "@/lib/navigation";
+import { useSse } from "@/lib/realtime/use-sse";
 import { fetchMasterLookups } from "@/lib/lookups";
 import { useSessionContext } from "@/lib/use-session-context";
 import DisputesPage from "../disputes/page";
@@ -118,7 +119,7 @@ export default function DeliveryPage() {
     }
   }, [activeTab, loaded, requestedTab, router]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const [deliveryData, lookupData, runData] = await Promise.all([
         apiClient<PaginatedResponse<Delivery>>("/api/proxy/deliveries?page=1&page_size=50"),
@@ -132,19 +133,18 @@ export default function DeliveryPage() {
       setLookups(lookupData);
       setProductionRuns(runRows);
 
-      if (!selectedDeliveryId && deliveryRows.length > 0) {
-        setSelectedDeliveryId(deliveryRows[0].id);
-      }
-
-      if (!manifestForm.production_run_id && runRows.length > 0) {
-        setManifestForm((prev) => ({ ...prev, production_run_id: runRows[0].id }));
-      }
+      setSelectedDeliveryId((previous) => previous || deliveryRows[0]?.id || "");
+      setManifestForm((previous) =>
+        previous.production_run_id || runRows.length === 0
+          ? previous
+          : { ...previous, production_run_id: runRows[0].id }
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal load deliveries");
     }
-  };
+  }, []);
 
-  const loadStops = async (deliveryId: string) => {
+  const loadStops = useCallback(async (deliveryId: string) => {
     if (!deliveryId) {
       setStops([]);
       setSelectedStopId("");
@@ -155,29 +155,67 @@ export default function DeliveryPage() {
       const data = await apiClient<PaginatedResponse<Stop>>(`/api/proxy/deliveries/${deliveryId}/stops?page=1&page_size=100`);
       const rows = readData<Stop>(data);
       setStops(rows);
-      if (rows.length > 0) {
-        setSelectedStopId(rows[0].id);
-      } else {
-        setSelectedStopId("");
-      }
+      setSelectedStopId((previous) => {
+        if (rows.length === 0) {
+          return "";
+        }
+        return rows.some((row) => row.id === previous) ? previous : rows[0].id;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal load stops");
     }
-  };
+  }, []);
+
+  const realtimeState = useSse({
+    enabled: activeTab === "manifest",
+    topics: ["delivery"],
+    deliveryId: selectedDeliveryId || undefined,
+    intervalSeconds: 10,
+    onDeliverySnapshot: (snapshot: DeliverySnapshotEvent) => {
+      setDeliveries(snapshot.deliveries ?? []);
+      const hasCurrent = selectedDeliveryId.length > 0 && snapshot.deliveries.some((row) => row.id === selectedDeliveryId);
+      const focusedDeliveryId = hasCurrent ? selectedDeliveryId : snapshot.deliveries[0]?.id ?? "";
+      setSelectedDeliveryId(focusedDeliveryId);
+
+      const scopedStops = focusedDeliveryId
+        ? snapshot.stops.filter((row) => row.delivery_id === focusedDeliveryId)
+        : snapshot.stops;
+      setStops(scopedStops);
+      setSelectedStopId((previous) => {
+        if (scopedStops.length === 0) {
+          return "";
+        }
+        return scopedStops.some((row) => row.id === previous) ? previous : scopedStops[0].id;
+      });
+      setError(null);
+    },
+    onFallbackPoll: async () => {
+      await load();
+      if (selectedDeliveryId) {
+        await loadStops(selectedDeliveryId);
+      }
+    }
+  });
+
+  const realtimeBadgeClass = realtimeState === "live"
+    ? "status-success"
+    : realtimeState === "fallback"
+      ? "status-warning"
+      : realtimeState === "error"
+        ? "status-danger"
+        : "status-neutral";
 
   useEffect(() => {
     if (activeTab !== "manifest") {
       return;
     }
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, load]);
 
   useEffect(() => {
     if (activeTab !== "manifest" || !selectedDeliveryId) return;
     void loadStops(selectedDeliveryId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedDeliveryId]);
+  }, [activeTab, loadStops, selectedDeliveryId]);
 
   useEffect(() => {
     setProofAttachment(null);
@@ -280,7 +318,14 @@ export default function DeliveryPage() {
             <span>Refresh</span>
           </button>
         }
-        chips={<span className="status-badge status-neutral">Tab aktif: {activeTab}</span>}
+        chips={
+          <>
+            <span className="status-badge status-neutral">Tab aktif: {activeTab}</span>
+            <span className={`status-badge ${realtimeBadgeClass}`} data-testid="delivery-realtime-state">
+              Realtime: {realtimeState}
+            </span>
+          </>
+        }
       />
 
       <ErrorState message={error} />

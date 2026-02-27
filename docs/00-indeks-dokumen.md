@@ -46,3 +46,4 @@ Dokumen ini menjadi pintu masuk utama untuk memahami sistem MBG Ops yang berjala
 - Dokumen acuan QA: `08-qa-uat-regression.md`
 - Gate acuan: `npm run qa:full` (wajib pass 2x berurutan)
 - Canonical route operasional: `/planning`, `/procurement`, `/inventory`, `/production`, `/delivery`, `/reports`
+- Realtime additive aktif: SSE `/workspace/stream` + fallback polling otomatis di Reports/Delivery

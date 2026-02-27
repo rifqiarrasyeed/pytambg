@@ -128,3 +128,31 @@ test("route /app/* sebagai compatibility redirect ke canonical", async ({ page }
   await page.goto("/app/billing", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/reports\?tab=overview/);
 });
+
+test("reports realtime pindah ke fallback polling saat stream gagal", async ({ page }) => {
+  test.setTimeout(120_000);
+  await login(page);
+
+  await page.route("**/api/proxy/workspace/stream**", async (route) => {
+    await route.abort();
+  });
+
+  await page.goto("/reports?tab=overview", { waitUntil: "domcontentloaded" });
+  const realtimeState = page.getByTestId("reports-realtime-state");
+  await expect(realtimeState).toBeVisible();
+
+  await expect
+    .poll(async () => (await realtimeState.textContent())?.toLowerCase() ?? "", { timeout: 35_000 })
+    .toContain("fallback");
+});
+
+test("delivery realtime status terkoneksi di tab manifest", async ({ page }) => {
+  test.setTimeout(120_000);
+  await login(page);
+  await page.goto("/delivery?tab=manifest", { waitUntil: "domcontentloaded" });
+  const realtimeState = page.getByTestId("delivery-realtime-state");
+  await expect(realtimeState).toBeVisible();
+  await expect
+    .poll(async () => (await realtimeState.textContent())?.toLowerCase() ?? "", { timeout: 20_000 })
+    .toMatch(/realtime:\s*(live|fallback|connecting|error)/);
+});

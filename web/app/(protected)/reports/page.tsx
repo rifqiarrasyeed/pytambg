@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, BarChart3, ClipboardList, RefreshCw } from "lucide-react";
 import { ErrorState } from "@/components/feedback-states";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { apiClient } from "@/lib/api-client";
-import type { QaIntegrityResponse, ReportsTab, WorkspaceAlert, WorkspaceSummaryResponse } from "@/lib/contracts";
+import type { QaIntegrityResponse, ReportsSnapshotEvent, ReportsTab, WorkspaceAlert, WorkspaceSummaryResponse } from "@/lib/contracts";
 import { hasAccessToReportsTab, resolveAllowedReportsTab } from "@/lib/navigation";
+import { useSse } from "@/lib/realtime/use-sse";
 import { useSessionContext } from "@/lib/use-session-context";
 import AuditPage from "../audit/page";
 import IncidentsPage from "../incidents/page";
@@ -81,7 +82,7 @@ export default function ReportsPage() {
     }
   }, [activeTab, loaded, requestedTab, router]);
 
-  const loadOverview = async () => {
+  const loadOverview = useCallback(async () => {
     try {
       const [kpiData, summaryData, alertsData, jobsData] = await Promise.all([
         apiClient<Kpi>("/api/proxy/workspace/kpi"),
@@ -102,14 +103,37 @@ export default function ReportsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal load laporan");
     }
-  };
+  }, []);
+
+  const realtimeState = useSse({
+    enabled: activeTab === "overview",
+    topics: ["reports"],
+    intervalSeconds: 10,
+    onReportsSnapshot: (event: ReportsSnapshotEvent) => {
+      setKpi(event.kpi);
+      setSummary(event.summary);
+      setAlerts(event.alerts ?? []);
+      setIntegrity(event.integrity);
+      setError(null);
+    },
+    onFallbackPoll: async () => {
+      await loadOverview();
+    }
+  });
+
+  const realtimeBadgeClass = realtimeState === "live"
+    ? "status-success"
+    : realtimeState === "fallback"
+      ? "status-warning"
+      : realtimeState === "error"
+        ? "status-danger"
+        : "status-neutral";
 
   useEffect(() => {
     if (activeTab === "overview") {
       void loadOverview();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, loadOverview]);
 
   const createExport = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -153,7 +177,14 @@ export default function ReportsPage() {
             <span>Refresh</span>
           </button>
         }
-        chips={<span className="status-badge status-neutral">Tab aktif: {activeTab}</span>}
+        chips={
+          <>
+            <span className="status-badge status-neutral">Tab aktif: {activeTab}</span>
+            <span className={`status-badge ${realtimeBadgeClass}`} data-testid="reports-realtime-state">
+              Realtime: {realtimeState}
+            </span>
+          </>
+        }
       />
 
       <ErrorState message={error} />

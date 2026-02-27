@@ -131,6 +131,51 @@ export type WorkspaceAlert = {
   count: number;
 };
 
+export type RealtimeTopic = "reports" | "delivery";
+
+export type ReportsSnapshotEvent = {
+  generated_at: string;
+  kpi: {
+    date: string;
+    planned: number;
+    produced: number;
+    delivered: number;
+    verified: number;
+    delivered_rate: number;
+    verified_rate: number;
+    waste_rate: number;
+  };
+  summary: WorkspaceSummaryResponse;
+  alerts: WorkspaceAlert[];
+  integrity: QaIntegrityResponse | null;
+};
+
+export type DeliverySnapshotEvent = {
+  generated_at: string;
+  delivery_id: string | null;
+  deliveries: Array<{
+    id: string;
+    manifest_no: string;
+    route_id: string;
+    driver_user_id: string;
+    status: string;
+    planned_departure: string;
+    updated_at: string;
+  }>;
+  stops: Array<{
+    id: string;
+    delivery_id: string;
+    school_id: string;
+    stop_order: number;
+    status: string;
+    updated_at: string;
+    planned_portions: number;
+    delivered_portions: number;
+  }>;
+};
+
+export type RealtimeConnectionState = "connecting" | "live" | "fallback" | "error";
+
 export type RoleMenuVisibilityMap = Record<
   "planning" | "procurement" | "inventory" | "production" | "delivery" | "reports",
   boolean

@@ -9,6 +9,7 @@ import { buildPagingMeta, parseListQuery } from "../../utils/pagination";
 import { resolveOrderBy } from "../../utils/sorting";
 import { resolveKpiTrendRange } from "./kpi-trend";
 import { writeAudit } from "../../services/audit-service";
+import { registerWorkspaceStreamRoute } from "./realtime-stream";
 
 const kpiSchema = z.object({
   date: z.string().date().optional(),
@@ -96,6 +97,8 @@ async function computeDailyKpi(args: { sppgId: string; reportDate: string }) {
 }
 
 export async function reportRoutes(app: FastifyInstance): Promise<void> {
+  registerWorkspaceStreamRoute(app);
+
   app.get(
     "/reports/kpi",
     { preHandler: [app.authenticate] },

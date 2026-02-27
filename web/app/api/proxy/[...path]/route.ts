@@ -87,10 +87,22 @@ async function forward(request: Request, params: { path: string[] }) {
     }
   }
 
+  const contentType = backendResponse.headers.get("content-type") ?? "";
+  if (contentType.includes("text/event-stream")) {
+    const streamHeaders = new Headers();
+    streamHeaders.set("content-type", contentType);
+    streamHeaders.set("cache-control", backendResponse.headers.get("cache-control") ?? "no-cache");
+    streamHeaders.set("connection", backendResponse.headers.get("connection") ?? "keep-alive");
+
+    return new NextResponse(backendResponse.body, {
+      status: backendResponse.status,
+      headers: streamHeaders
+    });
+  }
+
   const text = await backendResponse.text();
   const responseHeaders = new Headers();
-  const contentType = backendResponse.headers.get("content-type");
-  if (contentType) {
+  if (contentType.length > 0) {
     responseHeaders.set("content-type", contentType);
   }
 

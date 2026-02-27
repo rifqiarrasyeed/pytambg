@@ -178,6 +178,29 @@ npm run qa:quick
 npm run e2e:strict
 ```
 
+## Realtime Operasional (SSE + Fallback Polling)
+Fase ini menambahkan realtime additive tanpa mengubah kontrak endpoint bisnis yang sudah ada.
+
+Endpoint stream:
+- `GET /workspace/stream?topics=reports,delivery&delivery_id=<uuid>&interval_seconds=10`
+
+Event SSE:
+1. `hello`
+2. `reports.snapshot`
+3. `delivery.snapshot`
+4. `heartbeat`
+5. `error`
+
+Perilaku frontend:
+1. Reports (`/reports?tab=overview`) subscribe topic `reports`.
+2. Delivery (`/delivery?tab=manifest`) subscribe topic `delivery`.
+3. Jika stream gagal >=3 kali berurutan, frontend otomatis pindah ke fallback polling (20 detik) dan badge status berubah ke `fallback`.
+4. Jika stream kembali normal, status berubah ke `live`.
+
+Catatan:
+1. Proxy frontend `/api/proxy/*` sekarang mendukung pass-through `text/event-stream` (tidak di-buffer via `response.text()`).
+2. SSE tetap tenant-scoped (`active_sppg`) dan permission-scoped (`report.view`).
+
 Smoke manual ringkas:
 1. Login.
 2. Planning -> Procurement -> Inventory.

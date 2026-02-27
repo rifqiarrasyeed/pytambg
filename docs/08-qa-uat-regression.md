@@ -31,6 +31,8 @@ Checklist reliability:
 1. Tidak ada warning `allowedDevOrigins` saat `npm run e2e:strict`.
 2. Tidak ada warning chart `width(-1)` / `height(-1)`.
 3. `qa:full` lulus minimal 2x run berurutan sebelum freeze/push.
+4. Badge realtime Reports/Delivery berubah ke `live` saat SSE tersambung.
+5. Saat stream diputus paksa, frontend pindah ke `fallback` polling otomatis.
 
 Troubleshooting cepat:
 1. Port conflict (`EADDRINUSE`):
@@ -79,6 +81,10 @@ Troubleshooting cepat:
    - `audit_missing_request_id_count`
    - `audit_missing_actor_meta_count`
 30. `GET /audit-logs` filter `entity_id` + `action` berjalan benar.
+31. `GET /workspace/stream` tanpa token ditolak `401`.
+32. `GET /workspace/stream` topic invalid ditolak `422`.
+33. `GET /workspace/stream` mengirim event `hello` dan snapshot sesuai topic.
+34. Proxy frontend `/api/proxy/*` pass-through `text/event-stream` tanpa buffering text.
 
 ## 4) UAT Flow End-to-End
 1. Planning -> Procurement -> Receiving.
@@ -112,6 +118,8 @@ Semua aksi utama wajib punya `data-testid` stabil untuk E2E deterministik:
 Coverage E2E terbaru:
 1. `e2e/ui-actions.spec.ts` memverifikasi aksi sekunder `Edit/Batal`, refresh audit/filter, dan toggle menu mobile.
 2. `e2e/api-coverage.spec.ts` memverifikasi audit log terbentuk setelah mutasi master data.
+3. `e2e/ui-navigation.spec.ts` memverifikasi realtime fallback pada Reports dan status koneksi Delivery.
+4. `e2e/api-coverage.spec.ts` memverifikasi endpoint SSE (unauthorized, invalid topics, reports/delivery snapshot).
 
 ## 6) Evidence Freeze Baseline (Solo Operator)
 - Timestamp freeze sebelumnya: `2026-02-27 07:58:13 +07:00`
