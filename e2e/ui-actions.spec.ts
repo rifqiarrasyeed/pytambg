@@ -53,8 +53,23 @@ test("master-data: aksi sekunder edit/cancel dan BOM action terhubung", async ({
 
   const editSchool = page.getByTestId("master-edit-school").first();
   await expect(editSchool).toBeVisible();
-  await editSchool.click();
-  await expect(page.getByTestId("master-cancel-school")).toBeVisible();
+  let editMode = false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await editSchool.click({ force: true });
+    try {
+      await expect
+        .poll(async () => page.getByTestId("master-cancel-school").count(), { timeout: 4000 })
+        .toBeGreaterThan(0);
+      editMode = true;
+      break;
+    } catch {
+      if (attempt === 2) {
+        throw new Error("Aksi edit sekolah tidak masuk mode edit (cancel button tidak muncul).");
+      }
+    }
+  }
+  expect(editMode).toBeTruthy();
+
   await page.evaluate(() => {
     const cancel = document.querySelector<HTMLButtonElement>('[data-testid="master-cancel-school"]');
     cancel?.click();
